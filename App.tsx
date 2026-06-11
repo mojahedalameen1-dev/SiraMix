@@ -460,6 +460,24 @@ const MainAppContent: React.FC<{
 
             {activeTab === 'content' && (
               <div className="space-y-4">
+                <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">
+                        {isRtl ? 'استيراد سيرة جاهزة' : 'Import an existing resume'}
+                      </h4>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {isRtl
+                          ? 'ارفع ملف PDF أو DOCX وسيتم تعبئة النسخة الحالية فقط بعد موافقتك.'
+                          : 'Upload a PDF or DOCX and fill the current version only after your confirmation.'}
+                      </p>
+                    </div>
+                    <label className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${isImportingResume ? 'pointer-events-none bg-muted text-muted-foreground' : 'bg-[#00B5A5] text-white hover:bg-[#009f92]'}`}>
+                      {isImportingResume ? (isRtl ? 'جار الاستيراد...' : 'Importing...') : (isRtl ? 'استيراد PDF / DOCX' : 'Import PDF / DOCX')}
+                      <input type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleImportResumeFile} className="hidden" disabled={isImportingResume} />
+                    </label>
+                  </div>
+                </div>
                 {importBanner && (
                   <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-700 dark:text-emerald-300">
                     {importBanner}
@@ -487,10 +505,6 @@ const MainAppContent: React.FC<{
                       ? 'احتفظ بنسخة JSON من بيانات السيرة لاستعادتها لاحقًا أو نقلها بين الأجهزة.'
                       : 'Download your backup file as JSON to keep your data safe and use it on other machines.'}
                   </p>
-                  <label className={`flex items-center justify-center gap-1.5 py-2.5 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer ${isImportingResume ? 'pointer-events-none bg-muted text-muted-foreground' : 'bg-[#00B5A5] text-white hover:bg-[#009f92]'}`}>
-                    {isImportingResume ? (isRtl ? 'جار الاستيراد...' : 'Importing...') : (isRtl ? 'استيراد سيرة PDF / DOCX' : 'Import PDF / DOCX')}
-                    <input type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleImportResumeFile} className="hidden" disabled={isImportingResume} />
-                  </label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
