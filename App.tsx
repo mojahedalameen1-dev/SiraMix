@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
-import { DEFAULT_DUAL_RESUME_DATA, DEFAULT_TEMPLATE_OPTIONS } from './constants';
+import { ARABIC_FONT_FAMILIES, DEFAULT_DUAL_RESUME_DATA, DEFAULT_TEMPLATE_OPTIONS, ENGLISH_FONT_FAMILIES } from './constants';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { Login } from './components/Login';
 import Header, { SaveStatus } from './components/Header';
@@ -150,6 +150,13 @@ const MainAppContent: React.FC<{
 
   const currentCompletion = getResumeCompletion(activeData);
   const otherCompletion = getResumeCompletion(inactiveData);
+
+  useEffect(() => {
+    const availableFonts = activeLanguage === 'ar' ? ARABIC_FONT_FAMILIES : ENGLISH_FONT_FAMILIES;
+    if (!availableFonts.some(font => font.value === currentResume.options.fontFamily)) {
+      setTemplateOptions({ ...currentResume.options, fontFamily: availableFonts[0].value });
+    }
+  }, [activeLanguage, currentResume.options, setTemplateOptions]);
 
   const openEditorSection = (section: string) => {
     setActiveTab('content');
@@ -405,7 +412,7 @@ const MainAppContent: React.FC<{
 
             {activeTab === 'design' && (
               <div className="space-y-4 animate-fade-in">
-                <TemplateControls options={currentResume.options} setOptions={setTemplateOptions} />
+                <TemplateControls options={currentResume.options} setOptions={setTemplateOptions} language={activeLanguage} />
                 <div className="p-4 bg-card rounded-2xl border border-border shadow-sm flex flex-col gap-3">
                   <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                     {isRtl ? 'النسخ الاحتياطي والاستيراد' : 'Backup & Portability'}

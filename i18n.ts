@@ -97,7 +97,7 @@ const translations: TranslationTree = {
     exportResume: { en: 'Export', ar: 'تصدير' },
     exportFor: { en: 'Export current version', ar: 'تصدير النسخة الحالية' },
     asPDF: { en: ' as PDF', ar: ' بصيغة PDF' },
-    asWord: { en: ' as DOC', ar: ' بصيغة DOC' },
+    asWord: { en: ' as DOCX', ar: ' بصيغة DOCX' },
     asJPG: { en: ' as JPG', ar: ' بصيغة JPG' },
     backupJson: { en: ' backup', ar: ' نسخة احتياطية' },
     perfect: { en: 'Resume fits one page', ar: 'السيرة مناسبة لصفحة واحدة' },

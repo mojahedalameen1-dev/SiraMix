@@ -126,16 +126,44 @@ export const ACCENT_COLORS = [
   { name: 'Professional Gray', value: '#4b5563' },
 ];
 
-export const FONT_FAMILIES = [
-  { name: 'Thmanyah', value: 'font-thmanyah' },
-  { name: 'Calibri', value: 'font-calibri' },
-  { name: 'Arial', value: 'font-arial' },
-  { name: 'Helvetica', value: 'font-helvetica' },
-  { name: 'Georgia', value: 'font-georgia' },
-  { name: 'Cambria', value: 'font-cambria' },
-  { name: 'Tahoma', value: 'font-tahoma' },
-  { name: 'Times New Roman', value: 'font-times' },
+export interface FontFamilyOption {
+  name: string;
+  value: string;
+  cssFamily: string;
+  replacementFor?: string;
+}
+
+export const ARABIC_FONT_FAMILIES: FontFamilyOption[] = [
+  { name: 'Thmanyah', value: 'font-thmanyah', cssFamily: "'Thmanyah', 'Tajawal', 'Cairo', sans-serif" },
+  { name: 'IBM Plex Sans Arabic', value: 'font-ibm-plex-sans-arabic', cssFamily: "'IBM Plex Sans Arabic', sans-serif" },
+  { name: 'Cairo', value: 'font-cairo', cssFamily: "'Cairo', sans-serif" },
+  { name: 'Tajawal', value: 'font-tajawal', cssFamily: "'Tajawal', sans-serif" },
+  { name: 'Alexandria', value: 'font-alexandria', cssFamily: "'Alexandria', sans-serif" },
+  { name: 'Noto Sans Arabic', value: 'font-noto-sans-arabic', cssFamily: "'Noto Sans Arabic', sans-serif" },
+  { name: 'Almarai', value: 'font-almarai', cssFamily: "'Almarai', sans-serif" },
+  { name: 'Changa', value: 'font-changa', cssFamily: "'Changa', sans-serif" },
+  { name: 'El Messiri', value: 'font-el-messiri', cssFamily: "'El Messiri', sans-serif" },
+  { name: 'Noto Kufi Arabic', value: 'font-noto-kufi-arabic', cssFamily: "'Noto Kufi Arabic', sans-serif" },
 ];
+
+export const ENGLISH_FONT_FAMILIES: FontFamilyOption[] = [
+  { name: 'Calibri (Carlito)', value: 'font-carlito', cssFamily: "'Carlito', Calibri, sans-serif", replacementFor: 'Calibri' },
+  { name: 'Arial (Arimo)', value: 'font-arimo', cssFamily: "'Arimo', Arial, sans-serif", replacementFor: 'Arial' },
+  { name: 'Helvetica (Inter)', value: 'font-inter', cssFamily: "'Inter', Helvetica, Arial, sans-serif", replacementFor: 'Helvetica' },
+  { name: 'Inter', value: 'font-inter', cssFamily: "'Inter', sans-serif" },
+  { name: 'IBM Plex Sans', value: 'font-ibm-plex-sans', cssFamily: "'IBM Plex Sans', sans-serif" },
+  { name: 'Aptos (Source Sans 3)', value: 'font-source-sans-3', cssFamily: "'Source Sans 3', Aptos, sans-serif", replacementFor: 'Aptos' },
+  { name: 'Open Sans', value: 'font-open-sans', cssFamily: "'Open Sans', sans-serif" },
+  { name: 'Lato', value: 'font-lato', cssFamily: "'Lato', sans-serif" },
+  { name: 'Source Sans 3', value: 'font-source-sans-3', cssFamily: "'Source Sans 3', sans-serif" },
+  { name: 'Roboto', value: 'font-roboto', cssFamily: "'Roboto', sans-serif" },
+];
+
+export const FONT_FAMILIES = [...ARABIC_FONT_FAMILIES, ...ENGLISH_FONT_FAMILIES];
+
+export function getFontFamilyOption(value: string): FontFamilyOption {
+  return FONT_FAMILIES.find(font => font.value === value) || ARABIC_FONT_FAMILIES[0];
+}
 
 export const TEMPLATES = [
   { id: 'classic', name: 'Classic / رسمي' },

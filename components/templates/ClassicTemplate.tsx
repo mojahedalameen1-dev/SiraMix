@@ -191,7 +191,7 @@ const ClassicTemplate = forwardRef<HTMLDivElement, TemplateProps>(({ data, optio
             id="resume-preview"
             ref={ref}
             dir={isRtl ? 'rtl' : 'ltr'}
-            className={`bg-white shadow-resume text-black ${isRtl ? 'font-thmanyah' : options.fontFamily} ${paddingClass}`}
+            className={`bg-white shadow-resume text-black ${options.fontFamily} ${paddingClass}`}
             style={{ fontSize: options.fontSize, width: '210mm', minHeight: '297mm', color: '#000' }}
         >
             <header className={`text-center ${titleMargin}`}>

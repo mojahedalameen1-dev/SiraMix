@@ -70,3 +70,21 @@ body.dragging-cursor * {
 .font-thmanyah {
   font-family: 'Thmanyah', 'Tajawal', 'Cairo', sans-serif;
 }
+
+.font-ibm-plex-sans-arabic { font-family: 'IBM Plex Sans Arabic', sans-serif; }
+.font-cairo { font-family: 'Cairo', sans-serif; }
+.font-tajawal { font-family: 'Tajawal', sans-serif; }
+.font-alexandria { font-family: 'Alexandria', sans-serif; }
+.font-noto-sans-arabic { font-family: 'Noto Sans Arabic', sans-serif; }
+.font-almarai { font-family: 'Almarai', sans-serif; }
+.font-changa { font-family: 'Changa', sans-serif; }
+.font-el-messiri { font-family: 'El Messiri', sans-serif; }
+.font-noto-kufi-arabic { font-family: 'Noto Kufi Arabic', sans-serif; }
+.font-carlito { font-family: 'Carlito', Calibri, sans-serif; }
+.font-arimo { font-family: 'Arimo', Arial, sans-serif; }
+.font-inter { font-family: 'Inter', Helvetica, Arial, sans-serif; }
+.font-ibm-plex-sans { font-family: 'IBM Plex Sans', sans-serif; }
+.font-open-sans { font-family: 'Open Sans', sans-serif; }
+.font-lato { font-family: 'Lato', sans-serif; }
+.font-source-sans-3 { font-family: 'Source Sans 3', Aptos, sans-serif; }
+.font-roboto { font-family: 'Roboto', sans-serif; }

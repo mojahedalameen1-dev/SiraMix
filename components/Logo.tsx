@@ -31,7 +31,7 @@ export const Logo: React.FC<LogoProps> = ({
 
   return (
     <div className={`inline-flex items-center select-none ${className}`}>
-      <div className="bg-white px-3 py-1.5 rounded-full border border-gray-200/60 dark:border-white shadow-sm flex items-center justify-center transition-all duration-300 hover:shadow-md">
+      <div className="flex items-center justify-center rounded-full border border-gray-200/60 bg-white px-4 py-2 shadow-sm transition-all duration-300 hover:shadow-md dark:border-white">
         <img
           src="https://h.top4top.io/p_3811feeoa1.jpeg"
           alt="SiraMix Logo"

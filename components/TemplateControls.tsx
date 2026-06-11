@@ -1,16 +1,25 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TemplateOptions } from '../types';
-import { ACCENT_COLORS, FONT_FAMILIES, TEMPLATES } from '../constants';
-import { useTranslation } from '../i18n';
+import { ACCENT_COLORS, ARABIC_FONT_FAMILIES, ENGLISH_FONT_FAMILIES, TEMPLATES } from '../constants';
+import { Language, useTranslation } from '../i18n';
 
 interface TemplateControlsProps {
   options: TemplateOptions;
   setOptions: (options: TemplateOptions) => void;
+  language: Language;
 }
 
-const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions }) => {
+const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions, language }) => {
   const { t } = useTranslation();
   const numericFontSize = parseFloat(options.fontSize);
+  const availableFonts = language === 'ar' ? ARABIC_FONT_FAMILIES : ENGLISH_FONT_FAMILIES;
+  const currentFontIsAvailable = availableFonts.some(font => font.value === options.fontFamily);
+
+  useEffect(() => {
+    if (!currentFontIsAvailable) {
+      setOptions({ ...options, fontFamily: availableFonts[0].value });
+    }
+  }, [availableFonts, currentFontIsAvailable, options, setOptions]);
 
   const handleChange = (key: keyof TemplateOptions, value: string) => {
     setOptions({ ...options, [key]: value });
@@ -51,17 +60,26 @@ const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions
       </div>
 
       <div>
-        <label htmlFor="fontFamily" className="mb-2 block text-sm font-bold text-foreground">{t('templateControls.fontFamily')}</label>
-        <select
-          id="fontFamily"
-          value={options.fontFamily}
-          onChange={e => handleChange('fontFamily', e.target.value)}
-          className="w-full rounded-xl border border-border bg-background p-2.5 text-sm outline-none focus:border-[#00B5A5] focus:ring-2 focus:ring-[#00B5A5]/20"
-        >
-          {FONT_FAMILIES.map(font => (
-            <option key={font.value} value={font.value}>{font.name}</option>
+        <label className="mb-2 block text-sm font-bold text-foreground">{t('templateControls.fontFamily')}</label>
+        <div className="grid max-h-72 grid-cols-1 gap-2 overflow-auto rounded-xl border border-border bg-background p-2">
+          {availableFonts.map(font => (
+            <button
+              key={font.value}
+              type="button"
+              onClick={() => handleChange('fontFamily', font.value)}
+              className={`flex items-center justify-between rounded-lg border px-3 py-2 text-start text-sm transition ${
+                options.fontFamily === font.value
+                  ? 'border-[#00B5A5] bg-[#00B5A5]/10 text-foreground'
+                  : 'border-transparent hover:bg-accent'
+              }`}
+            >
+              <span className={font.value}>{font.name}</span>
+              {font.replacementFor && (
+                <span className="text-[10px] font-bold text-muted-foreground">{font.replacementFor}</span>
+              )}
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
       <div>

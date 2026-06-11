@@ -81,8 +81,10 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
       <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-3">
-          <Logo showText={false} size="sm" />
+        <div className="flex flex-wrap items-center gap-4 lg:gap-6">
+          <div className="shrink-0 pe-2 lg:pe-4">
+            <Logo showText={false} size="md" />
+          </div>
 
           <div className="flex items-center gap-2 rounded-2xl border border-border bg-background p-1">
             <select

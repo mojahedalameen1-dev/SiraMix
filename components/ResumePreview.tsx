@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ResumeData, TemplateOptions } from '../types';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import { getFontFamilyOption } from '../constants';
+import { useTranslation } from '../i18n';
+import { ResumeData, TemplateOptions } from '../types';
 import ClassicTemplate from './templates/ClassicTemplate';
 import ModernTemplate from './templates/ModernTemplate';
-import { useTranslation } from '../i18n';
 
 interface ResumePreviewProps {
   data: ResumeData;
@@ -35,6 +36,14 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
 
   const A4_WIDTH_PX = 793.7;
   const A4_HEIGHT_PX = 1122.5;
+  const fileName = `SiraMix-${data.personalInfo.name || 'Resume'}`.replace(/\s+/g, '-');
+  const selectedFont = getFontFamilyOption(options.fontFamily);
+
+  const waitForFonts = async () => {
+    if ('fonts' in document) {
+      await document.fonts.ready;
+    }
+  };
 
   useEffect(() => {
     const calculateScale = () => {
@@ -77,12 +86,11 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
     return () => clearTimeout(timer);
   }, [data, options]);
 
-  const fileName = `SiraMix-${data.personalInfo.name || 'Resume'}`.replace(/\s+/g, '-');
-
   const capturePreview = async () => {
     const input = previewRef.current;
     if (!input) return null;
 
+    await waitForFonts();
     const originalWidth = input.style.width;
     const originalHeight = input.style.height;
     input.style.width = '1050px';
@@ -115,44 +123,167 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
     pdf.save(`${fileName}.pdf`);
   };
 
-  const handleDownloadDoc = () => {
+  const marginBySize = {
+    compact: 700,
+    normal: 950,
+    wide: 1250,
+  };
+
+  const lineHeightBySpacing = {
+    compact: 1.25,
+    normal: 1.45,
+    spacious: 1.7,
+  };
+
+  const getExportHtml = () => {
     const input = previewRef.current;
-    if (!input) return;
+    if (!input) return null;
+
     const clonedNode = input.cloneNode(true) as HTMLElement;
-    document.body.appendChild(clonedNode);
-    clonedNode.style.position = 'absolute';
-    clonedNode.style.left = '-9999px';
-    clonedNode.style.color = '#000';
+    const isRtl = language === 'ar';
+    const lineHeight = lineHeightBySpacing[options.lineSpacing || 'normal'];
+    const textAlign = isRtl ? 'right' : 'left';
+    const fontSize = options.fontSize || '10pt';
+
+    const originalElements = [input, ...Array.from(input.querySelectorAll('*'))] as HTMLElement[];
+    const clonedElements = [clonedNode, ...Array.from(clonedNode.querySelectorAll('*'))] as HTMLElement[];
+    originalElements.forEach((originalElement, index) => {
+      const clonedElement = clonedElements[index];
+      if (!clonedElement) return;
+      const computed = window.getComputedStyle(originalElement);
+      const copiedProperties = [
+        'color',
+        'backgroundColor',
+        'fontFamily',
+        'fontSize',
+        'fontWeight',
+        'lineHeight',
+        'textAlign',
+        'direction',
+        'marginTop',
+        'marginRight',
+        'marginBottom',
+        'marginLeft',
+        'paddingTop',
+        'paddingRight',
+        'paddingBottom',
+        'paddingLeft',
+        'borderBottomColor',
+        'borderBottomStyle',
+        'borderBottomWidth',
+      ] as const;
+      copiedProperties.forEach(property => {
+        clonedElement.style[property] = computed[property];
+      });
+    });
+
+    clonedNode.querySelectorAll('[class]').forEach(element => {
+      (element as HTMLElement).removeAttribute('class');
+    });
 
     clonedNode.querySelectorAll('div[data-bullet]').forEach(item => {
       const p = document.createElement('p');
-      p.style.margin = '0';
-      p.style.textIndent = '-18pt';
-      p.style.marginLeft = '18pt';
+      p.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
+      p.style.margin = '0 0 4pt 0';
+      p.style.textAlign = textAlign;
+      p.style.lineHeight = String(lineHeight);
+      p.style.paddingInlineStart = '14pt';
+
       const bullet = document.createElement('span');
-      bullet.style.fontFamily = 'Symbol';
-      bullet.style.paddingRight = '5pt';
+      bullet.style.fontFamily = selectedFont.cssFamily;
+      bullet.style.paddingInlineEnd = '5pt';
       bullet.textContent = '•';
+
+      const text = (item.textContent || '').replace(/^•\s*/, '').trim();
       p.appendChild(bullet);
-      p.appendChild(document.createTextNode(item.textContent || ''));
+      p.appendChild(document.createTextNode(text));
       item.parentNode?.replaceChild(p, item);
     });
 
     const styles = `
       <style>
-        body { font-family: Arial, sans-serif; font-size: 10pt; color: #000; direction: ${language === 'ar' ? 'rtl' : 'ltr'}; }
-        h1, h2, h3, h4, p { margin: 0; padding: 0; }
-        .section-title { border-bottom: 2px solid ${options.accentColor}; padding-bottom: 4px; margin-bottom: 8px; }
+        html, body {
+          margin: 0;
+          padding: 0;
+          background: #ffffff;
+          color: #000000;
+          direction: ${isRtl ? 'rtl' : 'ltr'};
+          unicode-bidi: embed;
+          font-family: ${selectedFont.cssFamily};
+          font-size: ${fontSize};
+          line-height: ${lineHeight};
+        }
+        body, div, section, header, main, aside, p, span, a, h1, h2, h3, h4, li {
+          font-family: ${selectedFont.cssFamily};
+          box-sizing: border-box;
+        }
+        #resume-preview {
+          width: 210mm;
+          min-height: 297mm;
+          background: #ffffff;
+          color: #000000;
+          direction: ${isRtl ? 'rtl' : 'ltr'};
+          unicode-bidi: embed;
+          text-align: ${textAlign};
+        }
+        header { text-align: center; margin-bottom: ${options.lineSpacing === 'compact' ? '12pt' : options.lineSpacing === 'spacious' ? '24pt' : '18pt'}; }
+        main, aside, section { direction: ${isRtl ? 'rtl' : 'ltr'}; unicode-bidi: embed; }
+        h1 { margin: 0; font-size: 24pt; font-weight: 800; color: ${options.accentColor}; text-align: center; }
+        h2 { margin: 4pt 0 8pt 0; font-size: 14pt; font-weight: 500; text-align: center; color: #111827; }
+        h3, .section-title {
+          margin: 0 0 8pt 0;
+          padding-bottom: 4pt;
+          border-bottom: 1.5pt solid ${options.accentColor};
+          font-size: 11pt;
+          font-weight: 700;
+          text-transform: uppercase;
+          color: #000000;
+          text-align: ${textAlign};
+        }
+        p { margin: 0 0 5pt 0; line-height: ${lineHeight}; text-align: ${textAlign}; }
+        a { color: ${options.accentColor}; text-decoration: none; }
+        .grid, .flex { display: block; }
+        [dir="rtl"] { direction: rtl; unicode-bidi: embed; text-align: right; }
+        [dir="ltr"] { direction: ltr; unicode-bidi: embed; text-align: left; }
       </style>
     `;
-    const sourceHTML = `<html><head><meta charset="utf-8"><title>SiraMix Resume</title>${styles}</head><body>${clonedNode.innerHTML}</body></html>`;
-    document.body.removeChild(clonedNode);
 
+    return `<!DOCTYPE html><html lang="${language}" dir="${isRtl ? 'rtl' : 'ltr'}"><head><meta charset="utf-8"><title>SiraMix Resume</title>${styles}</head><body>${clonedNode.outerHTML}</body></html>`;
+  };
+
+  const handleDownloadDoc = async () => {
+    const sourceHTML = getExportHtml();
+    if (!sourceHTML) return;
+
+    await waitForFonts();
+    const margin = marginBySize[options.marginSize || 'normal'];
+    const response = await fetch('/api/export/docx', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        html: sourceHTML,
+        fileName,
+        documentOptions: {
+          margins: { top: margin, right: margin, bottom: margin, left: margin },
+          title: `${data.personalInfo.name || 'SiraMix Resume'}`,
+          font: selectedFont.name.replace(/\s+\(.+\)$/, ''),
+          fontSize: options.fontSize,
+          lang: language === 'ar' ? 'ar-SA' : 'en-US',
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('DOCX export failed');
+    }
+
+    const blob = await response.blob();
     const link = document.createElement('a');
     document.body.appendChild(link);
-    link.href = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
-    link.download = `${fileName}.doc`;
+    link.href = URL.createObjectURL(blob);
+    link.download = `${fileName}.docx`;
     link.click();
+    URL.revokeObjectURL(link.href);
     document.body.removeChild(link);
   };
 
@@ -226,7 +357,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
                   <span className="text-xs font-black text-red-500">PDF</span>{t('resumePreview.asPDF')}
                 </button>
                 <button onClick={() => { handleDownloadDoc(); setExportMenuOpen(false); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
-                  <span className="text-xs font-black text-blue-500">DOC</span>{t('resumePreview.asWord')}
+                  <span className="text-xs font-black text-blue-500">DOCX</span>{t('resumePreview.asWord')}
                 </button>
                 <button onClick={() => { handleDownloadImage(); setExportMenuOpen(false); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
                   <span className="text-xs font-black text-amber-500">JPG</span>{t('resumePreview.asJPG')}
