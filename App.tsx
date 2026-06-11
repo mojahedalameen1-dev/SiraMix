@@ -13,6 +13,7 @@ import { PencilIcon } from './components/icons/PencilIcon';
 import { TargetIcon } from './components/icons/TargetIcon';
 import { LanguageProvider, useLanguage } from './i18n';
 import { resumeService } from './services/resumeService';
+import { extractResumeTextFromFile, getFirstImportedSection, importResumeTextIntoData } from './services/resumeImportService';
 import { DualResumeData, Resume, ResumeData, TemplateOptions } from './types';
 
 type WorkspaceTab = 'content' | 'design' | 'ats';
@@ -147,6 +148,8 @@ const MainAppContent: React.FC<{
   const [openSection, setOpenSection] = useState<string | null>('personalInfo');
   const [focusSection, setFocusSection] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<MobileWorkspaceView>('form');
+  const [importBanner, setImportBanner] = useState<string | null>(null);
+  const [isImportingResume, setIsImportingResume] = useState(false);
 
   const currentCompletion = getResumeCompletion(activeData);
   const otherCompletion = getResumeCompletion(inactiveData);
@@ -271,6 +274,61 @@ const MainAppContent: React.FC<{
 
     fileReader.readAsText(file);
     event.target.value = '';
+  };
+
+  const handleImportResumeFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const confirmed = window.confirm(
+      isRtl
+        ? 'سيتم استبدال محتوى النسخة الحالية فقط. هل تريد المتابعة؟'
+        : 'The current version content will be replaced. Do you want to continue?',
+    );
+
+    if (!confirmed) {
+      toast(isRtl ? 'تم إلغاء الاستيراد.' : 'Import cancelled.');
+      return;
+    }
+
+    setIsImportingResume(true);
+    setImportBanner(null);
+
+    try {
+      const extractedText = await extractResumeTextFromFile(file);
+      if (!extractedText.trim()) {
+        toast.error(isRtl ? 'لم نتمكن من استخراج أي نص من الملف. جرّب ملف PDF أو DOCX يحتوي على نص قابل للنسخ.' : 'No text could be extracted from this file. Try a text-based PDF or DOCX.');
+        return;
+      }
+
+      let importedSection = 'personalInfo';
+      setResumeData(prevDualData => {
+        const currentActiveData = prevDualData[activeLanguage];
+        const importedData = importResumeTextIntoData(currentActiveData, extractedText);
+        importedSection = getFirstImportedSection(currentActiveData, importedData);
+
+        return {
+          ...prevDualData,
+          [activeLanguage]: importedData,
+        };
+      });
+
+      setActiveTab('content');
+      setMobileView('form');
+      setOpenSection(importedSection);
+      setFocusSection(importedSection);
+      window.setTimeout(() => setFocusSection(null), 1400);
+      setImportBanner(isRtl ? 'تم الاستيراد — راجع البيانات وعدّل ما تحتاج' : 'Imported — review the data and edit anything you need.');
+      toast.success(isRtl ? 'تم الاستيراد — راجع البيانات وعدّل ما تحتاج.' : 'Imported. Review the data and edit anything you need.');
+    } catch (error) {
+      const message = error instanceof Error && error.message === 'UNSUPPORTED_FILE_TYPE'
+        ? (isRtl ? 'نوع الملف غير مدعوم. ارفع ملف PDF أو DOCX فقط.' : 'Unsupported file type. Upload PDF or DOCX only.')
+        : (isRtl ? 'تعذر استيراد السيرة. تأكد أن الملف غير تالف ويحتوي على نص قابل للاستخراج.' : 'Could not import this resume. Make sure the file is not corrupted and contains extractable text.');
+      toast.error(message);
+    } finally {
+      setIsImportingResume(false);
+    }
   };
 
   return (
@@ -401,13 +459,20 @@ const MainAppContent: React.FC<{
             </div>
 
             {activeTab === 'content' && (
-              <ResumeForm
-                resumeData={activeData}
-                setResumeData={handleSetLanguageSpecificResumeData}
-                openSection={openSection}
-                setOpenSection={setOpenSection}
-                focusSection={focusSection}
-              />
+              <div className="space-y-4">
+                {importBanner && (
+                  <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                    {importBanner}
+                  </div>
+                )}
+                <ResumeForm
+                  resumeData={activeData}
+                  setResumeData={handleSetLanguageSpecificResumeData}
+                  openSection={openSection}
+                  setOpenSection={setOpenSection}
+                  focusSection={focusSection}
+                />
+              </div>
             )}
 
             {activeTab === 'design' && (
@@ -422,6 +487,10 @@ const MainAppContent: React.FC<{
                       ? 'احتفظ بنسخة JSON من بيانات السيرة لاستعادتها لاحقًا أو نقلها بين الأجهزة.'
                       : 'Download your backup file as JSON to keep your data safe and use it on other machines.'}
                   </p>
+                  <label className={`flex items-center justify-center gap-1.5 py-2.5 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer ${isImportingResume ? 'pointer-events-none bg-muted text-muted-foreground' : 'bg-[#00B5A5] text-white hover:bg-[#009f92]'}`}>
+                    {isImportingResume ? (isRtl ? 'جار الاستيراد...' : 'Importing...') : (isRtl ? 'استيراد سيرة PDF / DOCX' : 'Import PDF / DOCX')}
+                    <input type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleImportResumeFile} className="hidden" disabled={isImportingResume} />
+                  </label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
