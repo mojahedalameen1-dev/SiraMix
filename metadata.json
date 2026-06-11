@@ -1,0 +1,8 @@
+{
+  "name": "SiraMix",
+  "description": "ATS-Friendly Dual Resume Builder. Create professional resumes in Arabic and English.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
