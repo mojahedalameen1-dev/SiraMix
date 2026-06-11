@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Thmanyah';
+  src: local('Thmanyah');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root {
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
@@ -58,4 +65,8 @@ body.dragging-cursor * {
 
 .font-arabic {
   font-family: Calibri, sans-serif;
+}
+
+.font-thmanyah {
+  font-family: 'Thmanyah', 'Tajawal', 'Cairo', sans-serif;
 }

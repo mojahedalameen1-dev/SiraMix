@@ -41,6 +41,7 @@ export default {
         times: ['Times New Roman', 'serif'],
         trebuchet: ['Trebuchet MS', 'sans-serif'],
         shamel: ['Calibri', 'sans-serif'],
+        thmanyah: ['Thmanyah', 'Tajawal', 'Cairo', 'sans-serif'],
       },
       boxShadow: {
         resume: '0 4px 12px 0 rgba(0, 0, 0, 0.05)',

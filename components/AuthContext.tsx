@@ -23,47 +23,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
       setLoading(false);
+    }).catch((error) => {
+      console.error('Error loading auth session:', error);
+      setLoading(false);
     });
 
-    // Listen to authentication changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       setLoading(false);
-
-      if (event === 'SIGNED_IN') {
-        if (window.opener) {
-          window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
-          window.close();
-        }
-      }
     });
-
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-        supabase.auth.getSession().then(({ data: { session: newSession } }) => {
-          setSession(newSession);
-          setUser(newSession?.user ?? null);
-        });
-      }
-    };
-    window.addEventListener('message', handleMessage);
-
-    if (window.opener && window.location.hash.includes('access_token')) {
-      setTimeout(() => {
-        window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
-        window.close();
-      }, 1500);
-    }
 
     return () => {
       subscription.unsubscribe();
-      window.removeEventListener('message', handleMessage);
     };
   }, []);
 
@@ -77,13 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
-          skipBrowserRedirect: true,
         },
       });
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, 'oauth_popup', 'width=600,height=700');
-      }
+      if (!data?.url) return;
     } catch (err: any) {
       console.error('Error signing in with Google:', err.message || err);
       throw err;

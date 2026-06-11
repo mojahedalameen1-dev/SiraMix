@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-let supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const defaultSupabaseUrl = 'https://deifwsagpwmtbwjavxoz.supabase.co';
+const defaultSupabaseAnonKey = 'sb_publishable_T2Qyemp4pfjCJ9CmZus5mA__9B0jppo';
+
+let supabaseUrl = import.meta.env.VITE_SUPABASE_URL || defaultSupabaseUrl;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || defaultSupabaseAnonKey;
 
 // Automatically correct dashboard URLs to the correct project URL
 if (supabaseUrl.includes('supabase.com/dashboard/project/')) {
