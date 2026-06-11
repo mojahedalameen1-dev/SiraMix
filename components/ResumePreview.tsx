@@ -39,6 +39,17 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
   const fileName = `SiraMix-${data.personalInfo.name || 'Resume'}`.replace(/\s+/g, '-');
   const selectedFont = getFontFamilyOption(options.fontFamily);
 
+  const triggerDownload = (blob: Blob, downloadName: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    document.body.appendChild(link);
+    link.href = url;
+    link.download = downloadName;
+    link.click();
+    document.body.removeChild(link);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+  };
+
   const waitForFonts = async () => {
     if ('fonts' in document) {
       await document.fonts.ready;
@@ -104,12 +115,8 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
   const handleDownloadImage = async () => {
     const canvas = await capturePreview();
     if (!canvas) return;
-    const link = document.createElement('a');
-    document.body.appendChild(link);
-    link.href = canvas.toDataURL('image/jpeg');
-    link.download = `${fileName}.jpg`;
-    link.click();
-    document.body.removeChild(link);
+    const blob = await (await fetch(canvas.toDataURL('image/jpeg'))).blob();
+    triggerDownload(blob, `${fileName}.jpg`);
   };
 
   const handleDownloadPdf = async () => {
@@ -120,7 +127,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
-    pdf.save(`${fileName}.pdf`);
+    triggerDownload(pdf.output('blob'), `${fileName}.pdf`);
   };
 
   const marginBySize = {
@@ -278,13 +285,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
     }
 
     const blob = await response.blob();
-    const link = document.createElement('a');
-    document.body.appendChild(link);
-    link.href = URL.createObjectURL(blob);
-    link.download = `${fileName}.docx`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-    document.body.removeChild(link);
+    triggerDownload(blob, `${fileName}.docx`);
   };
 
   const reduceFont = () => setOptions({ ...options, fontSize: `${Math.max(8, parseFloat(options.fontSize) - 0.5)}pt` });
