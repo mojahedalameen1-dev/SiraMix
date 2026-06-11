@@ -10,7 +10,7 @@ export const DEFAULT_RESUME_DATA: ResumeData = {
     website: 'ameliachen.dev',
   },
   summary:
-    'Innovative Senior Frontend Engineer with 8+ years of experience building and maintaining responsive and scalable web applications. Proficient in React, TypeScript, and modern JavaScript frameworks. Passionate about creating accessible, user-centric UIs and mentoring junior developers.',
+    'Senior Frontend Engineer with 8+ years of experience building responsive, scalable web applications using React, TypeScript, and modern JavaScript frameworks. Strong focus on accessible interfaces, performance, and mentoring junior developers.',
   experience: [
     {
       id: crypto.randomUUID(),
@@ -19,7 +19,7 @@ export const DEFAULT_RESUME_DATA: ResumeData = {
       startDate: 'Jan 2020',
       endDate: 'Present',
       description:
-        '- Led the development of a new customer-facing dashboard using React and TypeScript, resulting in a 20% increase in user engagement.\n- Implemented a component library that reduced code duplication by 40%.\n- Mentored a team of 3 junior developers, fostering their growth and improving team velocity.',
+        '- Led development of a customer-facing dashboard using React and TypeScript, increasing engagement by 20%.\n- Built a shared component library that reduced duplicated UI code by 40%.\n- Mentored 3 junior developers and improved delivery consistency across the team.',
     },
     {
       id: crypto.randomUUID(),
@@ -28,7 +28,7 @@ export const DEFAULT_RESUME_DATA: ResumeData = {
       startDate: 'Jun 2016',
       endDate: 'Dec 2019',
       description:
-        '- Developed and maintained user interfaces for various client projects using React and Redux.\n- Collaborated with UX/UI designers to translate wireframes into high-quality, functional code.\n- Improved website performance by optimizing load times, achieving a 30% reduction in bounce rate.',
+        '- Developed and maintained web interfaces for multiple client projects using React and Redux.\n- Collaborated with UX/UI teams to translate wireframes into production-ready components.\n- Improved page performance and reduced bounce rate by 30%.',
     },
   ],
   education: [
@@ -38,18 +38,18 @@ export const DEFAULT_RESUME_DATA: ResumeData = {
       degree: 'B.S. in Computer Science',
       startDate: '2012',
       endDate: '2016',
-      description: 'Graduated with honors. Coursework included Data Structures, Algorithms, and Web Development.',
+      description: 'Graduated with honors. Coursework included data structures, algorithms, and web development.',
     },
   ],
   skills: [
     { id: crypto.randomUUID(), name: 'React' },
     { id: crypto.randomUUID(), name: 'TypeScript' },
-    { id: crypto.randomUUID(), name: 'JavaScript (ES6+)' },
+    { id: crypto.randomUUID(), name: 'JavaScript' },
     { id: crypto.randomUUID(), name: 'Node.js' },
     { id: crypto.randomUUID(), name: 'Tailwind CSS' },
     { id: crypto.randomUUID(), name: 'GraphQL' },
     { id: crypto.randomUUID(), name: 'Webpack' },
-    { id: crypto.randomUUID(), name: 'Jest & RTL' },
+    { id: crypto.randomUUID(), name: 'Testing' },
   ],
   customSectionsData: {},
   sectionOrder: ['summary', 'experience', 'education', 'skills'],
@@ -59,17 +59,44 @@ export const DEFAULT_RESUME_DATA: ResumeData = {
 
 export const DEFAULT_RESUME_DATA_AR: ResumeData = {
   personalInfo: {
-    name: 'اميليا تشن',
+    name: 'مجاهد الأمين',
     title: 'مهندس واجهات أمامية أول',
     email: 'amelia.chen@email.com',
-    phone: '(123) 456-7890',
-    location: 'سان فرانسيسكو، كاليفورنيا',
+    phone: '0506157728',
+    location: 'الخرج، السعودية',
     website: 'ameliachen.dev',
   },
-  summary: 'مهندس واجهات أمامية مبتكر يتمتع بخبرة تزيد عن 8 سنوات في بناء وصيانة تطبيقات ويب متجاوبة وقابلة للتطوير. بارع في React و TypeScript وأطر JavaScript الحديثة.',
-  experience: [],
-  education: [],
-  skills: [],
+  summary:
+    'مهندس واجهات أمامية بخبرة تزيد عن 8 سنوات في بناء تطبيقات ويب متجاوبة وقابلة للتطوير باستخدام React وTypeScript وأطر JavaScript الحديثة، مع تركيز على تجربة المستخدم وسرعة الأداء وجودة الواجهات.',
+  experience: [
+    {
+      id: crypto.randomUUID(),
+      company: 'حلول الابتكار التقنية',
+      title: 'مهندس واجهات أمامية أول',
+      startDate: 'يناير 2020',
+      endDate: 'حتى الآن',
+      description:
+        '- قُدت تطوير لوحة تحكم للعملاء باستخدام React وTypeScript مما ساهم في رفع تفاعل المستخدمين بنسبة 20%.\n- أنشأت مكتبة مكونات مشتركة خفضت تكرار كود الواجهات بنسبة 40%.\n- دربت 3 مطورين مبتدئين وحسنت انتظام التسليم داخل الفريق.',
+    },
+  ],
+  education: [
+    {
+      id: crypto.randomUUID(),
+      institution: 'جامعة الملك سعود',
+      degree: 'بكالوريوس علوم الحاسب',
+      startDate: '2012',
+      endDate: '2016',
+      description: 'دراسة ركزت على هياكل البيانات، الخوارزميات، وتطوير تطبيقات الويب.',
+    },
+  ],
+  skills: [
+    { id: crypto.randomUUID(), name: 'React' },
+    { id: crypto.randomUUID(), name: 'TypeScript' },
+    { id: crypto.randomUUID(), name: 'JavaScript' },
+    { id: crypto.randomUUID(), name: 'تحسين الأداء' },
+    { id: crypto.randomUUID(), name: 'تصميم الواجهات' },
+    { id: crypto.randomUUID(), name: 'اختبار الواجهات' },
+  ],
   customSectionsData: {},
   sectionOrder: ['summary', 'experience', 'education', 'skills'],
   sectionTitles: {},
@@ -82,46 +109,43 @@ export const DEFAULT_DUAL_RESUME_DATA = {
 };
 
 export const DEFAULT_TEMPLATE_OPTIONS: TemplateOptions = {
-    accentColor: '#00B5A5', // SiraMix Teal
-    fontFamily: 'font-calibri',
-    fontSize: '10pt',
-    template: 'classic',
-    lineSpacing: 'normal',
-    marginSize: 'normal',
+  accentColor: '#00B5A5',
+  fontFamily: 'font-thmanyah',
+  fontSize: '10pt',
+  template: 'classic',
+  lineSpacing: 'normal',
+  marginSize: 'normal',
 };
 
 export const ACCENT_COLORS = [
-    { name: 'SiraMix Indigo', value: '#261E5A' },
-    { name: 'SiraMix Teal', value: '#00B5A5' },
-    { name: 'Blue', value: '#3b82f6' },
-    { name: 'Green', value: '#22c55e' },
-    { name: 'Purple', value: '#8b5cf6' },
-    { name: 'Red', value: '#ef4444' },
-    { name: 'Gray', value: '#6b7280' },
+  { name: 'SiraMix Teal', value: '#00B5A5' },
+  { name: 'Deep Navy', value: '#202432' },
+  { name: 'Hiring Blue', value: '#2563eb' },
+  { name: 'Success Green', value: '#16a34a' },
+  { name: 'Warm Gold', value: '#d97706' },
+  { name: 'Professional Gray', value: '#4b5563' },
 ];
 
 export const FONT_FAMILIES = [
-    { name: 'Calibri', value: 'font-calibri' },
-    { name: 'Arial', value: 'font-arial' },
-    { name: 'Helvetica', value: 'font-helvetica' },
-    { name: 'Georgia', value: 'font-georgia' },
-    { name: 'Cambria', value: 'font-cambria' },
-    { name: 'Verdana', value: 'font-verdana' },
-    { name: 'Garamond', value: 'font-garamond' },
-    { name: 'Tahoma', value: 'font-tahoma' },
-    { name: 'Times New Roman', value: 'font-times' },
-    { name: 'Trebuchet MS', value: 'font-trebuchet' },
+  { name: 'Thmanyah', value: 'font-thmanyah' },
+  { name: 'Calibri', value: 'font-calibri' },
+  { name: 'Arial', value: 'font-arial' },
+  { name: 'Helvetica', value: 'font-helvetica' },
+  { name: 'Georgia', value: 'font-georgia' },
+  { name: 'Cambria', value: 'font-cambria' },
+  { name: 'Tahoma', value: 'font-tahoma' },
+  { name: 'Times New Roman', value: 'font-times' },
 ];
 
 export const TEMPLATES = [
-    { id: 'classic', name: 'Classic' },
-    { id: 'modern', name: 'Modern' },
+  { id: 'classic', name: 'Classic / رسمي' },
+  { id: 'modern', name: 'Modern / حديث' },
 ];
 
-export const CUSTOM_SECTION_TYPES: {id: CustomSectionType, name: string}[] = [
-    { id: 'default', name: 'Generic List' },
-    { id: 'projects', name: 'Projects' },
-    { id: 'certifications', name: 'Certifications' },
-    { id: 'awards', name: 'Awards' },
-    { id: 'languages', name: 'Languages' },
+export const CUSTOM_SECTION_TYPES: { id: CustomSectionType; name: string }[] = [
+  { id: 'default', name: 'Generic list' },
+  { id: 'projects', name: 'Projects' },
+  { id: 'certifications', name: 'Certifications' },
+  { id: 'awards', name: 'Awards' },
+  { id: 'languages', name: 'Languages' },
 ];

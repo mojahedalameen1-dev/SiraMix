@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+﻿import React, { forwardRef } from 'react';
 import { ResumeData, TemplateOptions } from '../../types';
 import { useTranslation } from '../../i18n';
 
@@ -27,11 +27,11 @@ const ModernTemplate = forwardRef<HTMLDivElement, TemplateProps>(({ data, option
     const paddingClass = options.marginSize === 'compact' ? 'p-6 md:p-8' : options.marginSize === 'wide' ? 'p-12 md:p-16' : 'p-8 md:p-12';
 
     const BulletPoint: React.FC<{ text: string }> = ({ text }) => {
-        const cleanedText = text.trim().replace(/^[•\-\*]\s*/, '');
+        const cleanedText = text.trim().replace(/^[\u2022\-\*]\s*/, '');
         if (!cleanedText) return null;
         return (
             <div className="flex items-start" data-bullet>
-                <span className={`mt-1.5 ${isRtl ? 'ml-3' : 'mr-3'}`} style={{ color: options.accentColor }}>•</span>
+                <span className={`mt-1.5 ${isRtl ? 'ml-3' : 'mr-3'}`} style={{ color: options.accentColor }}>&bull;</span>
                 <span className={`${textSpacingClass}`}>{cleanedText}</span>
             </div>
         );
@@ -118,7 +118,7 @@ const ModernTemplate = forwardRef<HTMLDivElement, TemplateProps>(({ data, option
                             }
                         })
                      ) : (
-                          <p className="text-gray-450 italic text-xs">This section is empty.</p>
+                          <p className="text-gray-400 italic text-xs">This section is empty.</p>
                      )}
                 </section>
             );
@@ -175,7 +175,7 @@ const ModernTemplate = forwardRef<HTMLDivElement, TemplateProps>(({ data, option
                          <ul className={`grid grid-cols-1 gap-y-1.5 ${isRtl ? '-mr-1' : '-ml-1'}`}>
                           {skills.map(skill => (
                             <li key={skill.id} className={`text-gray-750 ${textSpacingClass} flex items-start`}>
-                                <span className={`mt-1.5 ${isRtl ? 'ml-2' : 'mr-2'}`} style={{ color: options.accentColor }}>•</span>
+                                <span className={`mt-1.5 ${isRtl ? 'ml-2' : 'mr-2'}`} style={{ color: options.accentColor }}>&bull;</span>
                                 <span>{skill.name}</span>
                             </li>
                           ))}
@@ -192,7 +192,7 @@ const ModernTemplate = forwardRef<HTMLDivElement, TemplateProps>(({ data, option
             id="resume-preview"
             ref={ref}
             dir={isRtl ? 'rtl' : 'ltr'}
-            className={`bg-white shadow-resume text-black ${isRtl ? 'font-shamel' : options.fontFamily} ${paddingClass}`}
+            className={`bg-white shadow-resume text-black ${isRtl ? 'font-thmanyah' : options.fontFamily} ${paddingClass}`}
             style={{ fontSize: options.fontSize, width: '210mm', minHeight: '297mm', color: '#000' }}
         >
             <header className="mb-6 text-center">

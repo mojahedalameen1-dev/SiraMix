@@ -25,6 +25,8 @@ interface SectionProps<T extends Item> {
   onToggle?: () => void;
   onDelete?: () => void;
   onRename?: (newTitle: string) => void;
+  headerAddon?: React.ReactNode;
+  isHighlighted?: boolean;
 }
 
 const Section = <T extends Item,>({
@@ -41,6 +43,8 @@ const Section = <T extends Item,>({
   onToggle,
   onDelete,
   onRename,
+  headerAddon,
+  isHighlighted = false,
 }: SectionProps<T>) => {
   const contentId = useId();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -142,7 +146,8 @@ const Section = <T extends Item,>({
             <span>{title}</span>
         )}
       </div>
-      <div className="flex items-center ms-auto ps-2 space-x-1 rtl:space-x-reverse opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
+      {headerAddon && <div className="ms-auto ps-2">{headerAddon}</div>}
+      <div className="flex items-center ps-2 space-x-1 rtl:space-x-reverse opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
           {isEditable && onRename && (
               <button
                   onClick={startEditing}
@@ -169,7 +174,7 @@ const Section = <T extends Item,>({
   );
 
   return (
-    <div className="bg-card rounded-lg shadow-sm border border-border group">
+    <div className={`bg-card rounded-xl shadow-sm border group transition-all ${isHighlighted ? 'border-[#00B5A5] ring-2 ring-[#00B5A5]/20' : 'border-border'}`}>
       {isCollapsible ? (
         <div
           role="button"

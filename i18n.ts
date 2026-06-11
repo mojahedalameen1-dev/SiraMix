@@ -1,152 +1,177 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
-type Language = 'en' | 'ar';
+export type Language = 'en' | 'ar';
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (language: Language) => void;
 }
 
-const translations = {
+type TranslationLeaf = { en: string; ar: string };
+type TranslationTree = { [key: string]: TranslationLeaf | TranslationTree };
+
+const translations: TranslationTree = {
   header: {
-    title: { en: 'SiraMix', ar: 'SiraMix' },
-    selectResume: { en: 'Select Resume', ar: 'اختر السيرة الذاتية' },
-    renameResume: { en: 'Rename resume', ar: 'إعادة تسمية السيرة الذاتية' },
-    addNewResume: { en: 'Add new resume', ar: 'إضافة سيرة ذاتية جديدة' },
-    deleteCurrentResume: { en: 'Delete current resume', ar: 'حذف السيرة الذاتية الحالية' },
-    toggleTheme: { en: 'Toggle theme', ar: 'تبديل السمة' },
+    selectResume: { en: 'Select resume', ar: 'اختر السيرة الذاتية' },
+    renameResume: { en: 'Rename resume', ar: 'إعادة تسمية السيرة' },
+    addNewResume: { en: 'Create resume', ar: 'إنشاء سيرة جديدة' },
+    deleteCurrentResume: { en: 'Delete current resume', ar: 'حذف السيرة الحالية' },
+    toggleTheme: { en: 'Toggle theme', ar: 'تبديل الوضع' },
+    signOut: { en: 'Sign out', ar: 'تسجيل الخروج' },
+    saveSaved: { en: 'Saved', ar: 'تم الحفظ' },
+    saveSaving: { en: 'Saving...', ar: 'جار الحفظ...' },
+    saveError: { en: 'Save failed', ar: 'تعذر الحفظ' },
+    retrySave: { en: 'Retry', ar: 'إعادة المحاولة' },
   },
   form: {
-    personalInfo: { en: 'Personal Info', ar: 'المعلومات الشخصية' },
-    fullName: { en: 'Full Name', ar: 'الاسم الكامل' },
-    jobTitle: { en: 'Job Title', ar: 'المسمى الوظيفي' },
-    email: { en: 'Email', ar: 'البريد الإلكتروني' },
-    phone: { en: 'Phone', ar: 'الهاتف' },
-    location: { en: 'Location', ar: 'الموقع' },
-    website: { en: 'Website/Portfolio', ar: 'الموقع الإلكتروني/ملف الأعمال' },
-    summary: { en: 'Summary', ar: 'الملخص' },
-    summaryPlaceholder: { en: 'A brief summary about your professional background...', ar: 'ملخص موجز عن خلفيتك المهنية...' },
+    personalInfo: { en: 'Personal information', ar: 'المعلومات الشخصية' },
+    fullName: { en: 'Full name', ar: 'الاسم الكامل' },
+    jobTitle: { en: 'Target job title', ar: 'المسمى الوظيفي المستهدف' },
+    email: { en: 'Email address', ar: 'البريد الإلكتروني' },
+    phone: { en: 'Phone number', ar: 'رقم الجوال' },
+    location: { en: 'City, country', ar: 'المدينة، الدولة' },
+    website: { en: 'LinkedIn / portfolio', ar: 'لينكدإن أو الموقع الشخصي' },
+    summary: { en: 'Professional summary', ar: 'الملخص المهني' },
+    summaryPlaceholder: {
+      en: 'Write 3-4 focused sentences about your experience, strengths, and target role.',
+      ar: 'اكتب 3 إلى 4 جمل مركزة عن خبرتك ونقاط قوتك والوظيفة المستهدفة.',
+    },
     experience: { en: 'Experience', ar: 'الخبرة' },
     education: { en: 'Education', ar: 'التعليم' },
     skills: { en: 'Skills', ar: 'المهارات' },
     company: { en: 'Company', ar: 'الشركة' },
-    startDate: { en: 'Start Date', ar: 'تاريخ البدء' },
-    endDate: { en: 'End Date', ar: 'تاريخ الانتهاء' },
-    description: { en: 'Description', ar: 'الوصف' },
-    institution: { en: 'Institution', ar: 'المؤسسة التعليمية' },
-    degree: { en: 'Degree/Major', ar: 'الشهادة/التخصص' },
-    addSkillPlaceholder: { en: 'e.g., React, TypeScript', ar: 'مثال: React, TypeScript' },
-    addSkillInstruction: { en: 'Type a skill and press Enter or comma to add it.', ar: 'اكتب مهارة واضغط على Enter أو فاصلة لإضافتها.' },
+    startDate: { en: 'Start date', ar: 'تاريخ البداية' },
+    endDate: { en: 'End date', ar: 'تاريخ النهاية' },
+    description: { en: 'Description and achievements', ar: 'الوصف والإنجازات' },
+    institution: { en: 'Institution', ar: 'الجهة التعليمية' },
+    degree: { en: 'Degree / major', ar: 'الشهادة أو التخصص' },
+    addSkillPlaceholder: { en: 'Example: Project management, Excel, Sales', ar: 'مثال: إدارة المشاريع، Excel، المبيعات' },
+    addSkillInstruction: { en: 'Type a skill and press Enter or comma.', ar: 'اكتب المهارة ثم اضغط Enter أو فاصلة.' },
     removeSkill: { en: 'Remove', ar: 'إزالة' },
-    addNewSection: { en: 'Add New Section', ar: 'إضافة قسم جديد' },
-    newSectionTitlePlaceholder: { en: 'New section title (e.g., Projects)', ar: 'عنوان القسم الجديد (مثال: المشاريع)' },
+    addNewSection: { en: 'Add section', ar: 'إضافة قسم جديد' },
+    newSectionTitlePlaceholder: { en: 'Section title, e.g. Projects', ar: 'عنوان القسم، مثل: المشاريع' },
     cancel: { en: 'Cancel', ar: 'إلغاء' },
-    addSection: { en: 'Add Section', ar: 'إضافة قسم' },
-    deleteSectionTitle: { en: 'Delete', ar: 'حذف' },
+    addSection: { en: 'Add section', ar: 'إضافة القسم' },
+    deleteSectionTitle: { en: 'Delete section', ar: 'حذف القسم' },
     deleteSectionMessage: { en: 'This action cannot be undone.', ar: 'لا يمكن التراجع عن هذا الإجراء.' },
     delete: { en: 'Delete', ar: 'حذف' },
-    generateWithAI: { en: 'Spark with AI', ar: 'صياغة بالذكاء الاصطناعي' },
-    generating: { en: 'Generating...', ar: 'جاري الصياغة...' },
+    complete: { en: 'Complete', ar: 'مكتمل' },
+    missingRequired: { en: 'Missing required fields', ar: 'حقول مهمة ناقصة' },
   },
   formPlaceholders: {
-    primaryText: { en: 'Title / Role', ar: 'العنوان / الدور' },
-    secondaryText: { en: 'Subtitle / Company', ar: 'العنوان الفرعي / الشركة' },
-    startDate: { en: 'Start Date', ar: 'تاريخ البدء' },
-    endDate: { en: 'End Date', ar: 'تاريخ الانتهاء' },
+    primaryText: { en: 'Title / role', ar: 'العنوان أو الدور' },
+    secondaryText: { en: 'Subtitle / company', ar: 'الوصف أو الجهة' },
+    startDate: { en: 'Start date', ar: 'تاريخ البداية' },
+    endDate: { en: 'End date', ar: 'تاريخ النهاية' },
     description: { en: 'Description', ar: 'الوصف' },
-    projectName: { en: 'Project Name', ar: 'اسم المشروع' },
-    techStack: { en: 'Tech Stack (e.g., React, Node.js)', ar: 'التقنيات المستخدمة (مثال: React, Node.js)' },
-    certificationName: { en: 'Certification Name', ar: 'اسم الشهادة' },
-    issuingOrg: { en: 'Issuing Organization', ar: 'الجهة المانحة' },
-    dateIssued: { en: 'Date Issued', ar: 'تاريخ الإصدار' },
-    awardName: { en: 'Award Name', ar: 'اسم الجائزة' },
-    awardingBody: { en: 'Awarding Body', ar: 'الجهة المانحة' },
-    dateReceived: { en: 'Date Received', ar: 'تاريخ الاستلام' },
+    projectName: { en: 'Project name', ar: 'اسم المشروع' },
+    techStack: { en: 'Tools / technologies', ar: 'الأدوات أو التقنيات' },
+    certificationName: { en: 'Certification name', ar: 'اسم الشهادة' },
+    issuingOrg: { en: 'Issuing organization', ar: 'الجهة المانحة' },
+    dateIssued: { en: 'Date issued', ar: 'تاريخ الإصدار' },
+    awardName: { en: 'Award name', ar: 'اسم الجائزة' },
+    awardingBody: { en: 'Awarding body', ar: 'الجهة المانحة' },
+    dateReceived: { en: 'Date received', ar: 'تاريخ الاستلام' },
     language: { en: 'Language', ar: 'اللغة' },
-    proficiency: { en: 'Proficiency (e.g., Native, Fluent)', ar: 'المستوى (مثال: لغة أم, طليق)' },
+    proficiency: { en: 'Proficiency', ar: 'المستوى' },
   },
   section: {
-    noItems: { en: "No items added yet. Click 'Add New' to start.", ar: "لم تتم إضافة أي عناصر بعد. انقر فوق 'إضافة جديد' للبدء." },
-    addNew: { en: 'Add New', ar: 'إضافة جديد' },
+    noItems: { en: 'No entries yet. Add the first one.', ar: 'لا توجد عناصر بعد. أضف أول عنصر.' },
+    addNew: { en: 'Add entry', ar: 'إضافة عنصر' },
     renameSection: { en: 'Rename section', ar: 'إعادة تسمية القسم' },
     deleteSection: { en: 'Delete section', ar: 'حذف القسم' },
   },
   templateControls: {
-    template: { en: 'Template', ar: 'النموذج' },
-    accentColor: { en: 'Accent Color', ar: 'اللون المميز' },
-    fontFamily: { en: 'Font Family', ar: 'نوع الخط' },
-    fontSize: { en: 'Font Size', ar: 'حجم الخط' },
+    template: { en: 'Template', ar: 'القالب' },
+    accentColor: { en: 'Accent color', ar: 'لون التمييز' },
+    fontFamily: { en: 'Resume font', ar: 'خط السيرة' },
+    fontSize: { en: 'Font size', ar: 'حجم الخط' },
+    lineSpacing: { en: 'Line spacing', ar: 'تباعد الأسطر' },
+    pageMargins: { en: 'Page margins', ar: 'هوامش الصفحة' },
+    compact: { en: 'Compact', ar: 'مكثف' },
+    normal: { en: 'Normal', ar: 'عادي' },
+    spacious: { en: 'Spacious', ar: 'واسع' },
+    wide: { en: 'Wide', ar: 'واسعة' },
   },
   resumePreview: {
-    exportResume: { en: 'Export Resume', ar: 'تصدير السيرة الذاتية' },
-    asPDF: { en: 'as PDF', ar: 'كملف PDF' },
-    asWord: { en: 'as Word (.doc)', ar: 'كملف Word (.doc)' },
-    asJPG: { en: 'as Image (.jpg)', ar: 'كصورة (.jpg)' },
-    contact: { en: 'Contact', ar: 'معلومات الاتصال' },
+    exportResume: { en: 'Export', ar: 'تصدير' },
+    exportFor: { en: 'Export current version', ar: 'تصدير النسخة الحالية' },
+    asPDF: { en: ' as PDF', ar: ' بصيغة PDF' },
+    asWord: { en: ' as DOC', ar: ' بصيغة DOC' },
+    asJPG: { en: ' as JPG', ar: ' بصيغة JPG' },
+    backupJson: { en: ' backup', ar: ' نسخة احتياطية' },
+    perfect: { en: 'Resume fits one page', ar: 'السيرة مناسبة لصفحة واحدة' },
+    spill: { en: 'Resume is slightly over one page. Try:', ar: 'السيرة تتجاوز صفحة واحدة قليلًا. جرّب:' },
+    safe2: { en: 'Still within a reasonable two-page limit.', ar: 'ما زالت ضمن حد صفحتين بشكل مقبول.' },
+    reduceFont: { en: 'Reduce font', ar: 'تصغير الخط' },
+    reduceMargins: { en: 'Reduce margins', ar: 'تقليل الهوامش' },
+    reduceSpacing: { en: 'Reduce spacing', ar: 'تقليل التباعد' },
+    openLongest: { en: 'Open longest section', ar: 'فتح القسم الأطول' },
+    fitWidth: { en: 'Fit width', ar: 'ملاءمة العرض' },
+    zoom100: { en: '100%', ar: '100%' },
+    fitPage: { en: 'Fit page', ar: 'ملاءمة الصفحة' },
+    contact: { en: 'Contact', ar: 'التواصل' },
   },
-  customSectionTypes: {
-    default: { en: 'Generic List', ar: 'قائمة عامة' },
-    projects: { en: 'Projects', ar: 'المشاريع' },
-    certifications: { en: 'Certifications', ar: 'الشهادات' },
-    awards: { en: 'Awards', ar: 'الجوائز' },
-    languages: { en: 'Languages', ar: 'اللغات' },
+  ats: {
+    title: { en: 'ATS readiness', ar: 'جاهزية أنظمة الفرز الآلي' },
+    subtitle: {
+      en: 'A deterministic local check for contact details, structure, keywords, and measurable achievements.',
+      ar: 'فحص محلي يعتمد على قواعد واضحة لبيانات التواصل والبنية والكلمات المفتاحية والإنجازات القابلة للقياس.',
+    },
+    excellent: { en: 'Strong resume', ar: 'سيرة قوية' },
+    needsWork: { en: 'Needs improvement', ar: 'تحتاج تحسين' },
+    topFixes: { en: 'Top fixes', ar: 'أهم الإصلاحات' },
+    allChecks: { en: 'Checklist', ar: 'قائمة الفحص' },
+    goToSection: { en: 'Go to section', ar: 'انتقل للقسم' },
+    passed: { en: 'Passed', ar: 'مكتمل' },
+    warning: { en: 'Warning', ar: 'تنبيه' },
+    error: { en: 'Fix needed', ar: 'يحتاج إصلاح' },
   },
   toasts: {
-    autosaved: { en: 'Auto-saved!', ar: 'تم الحفظ تلقائيًا!' },
-    newResume: { en: 'New resume created.', ar: 'تم إنشاء سيرة ذاتية جديدة.' },
-    deleteError: { en: "You can't delete the last resume.", ar: 'لا يمكنك حذف آخر سيرة ذاتية.' },
-    deleteSuccess: { en: 'Resume deleted.', ar: 'تم حذف السيرة الذاتية.' },
-    sectionCreated: { en: 'Section "{title}" created.', ar: 'تم إنشاء قسم "{title}".' },
+    sectionCreated: { en: 'Section created.', ar: 'تم إنشاء القسم.' },
     sectionDeleted: { en: 'Section deleted.', ar: 'تم حذف القسم.' },
   },
   footer: {
-    credit: { en: 'Developed by Mojahed alameen', ar: 'تم تنفيذه من قبل المهندس Mojahed alameen' }
+    credit: { en: 'Developed by Mojahed alameen', ar: 'تم تنفيذه من قبل المهندس مجاهد الأمين' },
   },
-};
-
-const getNestedTranslation = (obj: any, path: string): { [key in Language]: string } | undefined => {
-  try {
-    const value = path.split('.').reduce((o, i) => o[i], obj);
-    return value;
-  } catch (error) {
-    return undefined;
-  }
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+const getInitialLanguage = (): Language => {
+  const saved = localStorage.getItem('language') as Language | null;
+  return saved === 'ar' || saved === 'en' ? saved : 'ar';
+};
+
+function isTranslationLeaf(value: TranslationLeaf | TranslationTree | undefined): value is TranslationLeaf {
+  return Boolean(value) && typeof value === 'object' && 'en' in value && 'ar' in value;
+}
+
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>(() => {
-    const savedLang = localStorage.getItem('language');
-    return (savedLang === 'ar' || savedLang === 'en') ? savedLang : 'en';
-  });
+  const [language, setLanguageState] = useState<Language>(getInitialLanguage);
+
+  const setLanguage = (nextLanguage: Language) => {
+    setLanguageState(nextLanguage);
+    localStorage.setItem('language', nextLanguage);
+  };
 
   useEffect(() => {
-    localStorage.setItem('language', language);
-    const htmlEl = document.documentElement;
-    htmlEl.lang = language;
-    htmlEl.dir = language === 'ar' ? 'rtl' : 'ltr';
-    if (language === 'ar') {
-      document.body.classList.add('font-shamel');
-      document.body.classList.remove('font-sans');
-    } else {
-      document.body.classList.add('font-sans');
-      document.body.classList.remove('font-shamel');
-    }
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+    document.body.classList.toggle('font-thmanyah', language === 'ar');
+    document.body.classList.toggle('font-sans', language === 'en');
   }, [language]);
 
-  // FIX: Replaced JSX with React.createElement to fix parsing errors in .ts file.
-  // The errors indicated that JSX syntax was not being correctly processed.
   return React.createElement(
     LanguageContext.Provider,
     { value: { language, setLanguage } },
-    children
+    children,
   );
 };
 
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useLanguage must be used within a LanguageProvider');
   }
   return context;
@@ -154,15 +179,14 @@ export const useLanguage = () => {
 
 export const useTranslation = () => {
   const { language } = useLanguage();
-  const t = (key: string, replacements?: { [key: string]: string }, fallback?: string): string => {
-    const translationObj = getNestedTranslation(translations, key);
-    let translation = translationObj ? translationObj[language] : (fallback || key);
-    if (replacements) {
-        Object.keys(replacements).forEach(rKey => {
-            translation = translation.replace(`{${rKey}}`, replacements[rKey]);
-        });
-    }
-    return translation;
+
+  const t = (path: string, _variables?: Record<string, unknown>, fallback?: string): string => {
+    const value = path.split('.').reduce<TranslationLeaf | TranslationTree | undefined>((current, key) => {
+      if (!current || isTranslationLeaf(current)) return undefined;
+      return current[key] as TranslationLeaf | TranslationTree | undefined;
+    }, translations);
+
+    return isTranslationLeaf(value) ? value[language] : (fallback || path);
   };
 
   return { t, language };

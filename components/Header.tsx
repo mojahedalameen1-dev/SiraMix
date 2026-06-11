@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { SunIcon } from './icons/SunIcon';
 import { MoonIcon } from './icons/MoonIcon';
 import { Resume } from '../types';
@@ -6,6 +6,8 @@ import { PlusIcon } from './icons/PlusIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { useLanguage, useTranslation } from '../i18n';
 import { Logo } from './Logo';
+
+export type SaveStatus = 'saved' | 'saving' | 'error';
 
 interface HeaderProps {
   theme: 'light' | 'dark';
@@ -19,14 +21,27 @@ interface HeaderProps {
   currentResumeName: string;
   user: any;
   signOut: () => Promise<void>;
+  saveStatus: SaveStatus;
+  onRetrySave: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ 
-    theme, setTheme, resumes, activeResumeId, setActiveResumeId, addResume, deleteResume, renameResume, currentResumeName, user, signOut
+const Header: React.FC<HeaderProps> = ({
+  theme,
+  setTheme,
+  resumes,
+  activeResumeId,
+  setActiveResumeId,
+  addResume,
+  deleteResume,
+  renameResume,
+  currentResumeName,
+  user,
+  signOut,
+  saveStatus,
+  onRetrySave,
 }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInputValue, setNameInputValue] = useState(currentResumeName);
-  const [currentTime, setCurrentTime] = useState(new Date());
   const nameInputRef = useRef<HTMLInputElement>(null);
   const { language, setLanguage } = useLanguage();
   const { t } = useTranslation();
@@ -42,152 +57,131 @@ const Header: React.FC<HeaderProps> = ({
     }
   }, [isEditingName]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
-  };
-
-  const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'ar' : 'en');
-  };
-
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNameInputValue(e.target.value);
-  };
-
-  const handleNameBlur = () => {
-    if (nameInputValue.trim() && nameInputValue !== currentResumeName) {
-      renameResume(activeResumeId, nameInputValue);
+  const commitName = () => {
+    const nextName = nameInputValue.trim();
+    if (nextName && nextName !== currentResumeName) {
+      renameResume(activeResumeId, nextName);
     } else {
       setNameInputValue(currentResumeName);
     }
     setIsEditingName(false);
   };
 
-  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      nameInputRef.current?.blur();
-    } else if (e.key === 'Escape') {
-      setNameInputValue(currentResumeName);
-      setIsEditingName(false);
-    }
-  };
-  
-  const handleDelete = () => {
-    deleteResume(activeResumeId);
-  }
-
   const userAvatar = user?.user_metadata?.avatar_url;
   const userFullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
-  const userInitials = userFullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  const userInitials = userFullName.split(' ').map((part: string) => part[0]).join('').toUpperCase().slice(0, 2);
+
+  const saveLabel = saveStatus === 'saving' ? t('header.saveSaving') : saveStatus === 'error' ? t('header.saveError') : t('header.saveSaved');
+  const saveClass = saveStatus === 'saving'
+    ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300'
+    : saveStatus === 'error'
+      ? 'bg-red-500/10 text-red-700 dark:text-red-300'
+      : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
 
   return (
-    <header className="bg-card border-b border-border sticky top-0 z-20">
-      <div className="container mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-4 flex-wrap justify-center md:justify-start">
-          <Logo showText={true} size="sm" />
-          <div className="flex items-center gap-1 bg-background border border-border rounded-lg p-1">
+    <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-3">
+          <Logo showText={false} size="sm" />
+
+          <div className="flex items-center gap-2 rounded-2xl border border-border bg-background p-1">
             <select
               value={activeResumeId}
               onChange={(e) => setActiveResumeId(e.target.value)}
-              className="bg-transparent text-sm font-medium text-foreground rounded-md focus:ring-2 focus:ring-ring border-none outline-none max-w-40"
+              className="max-w-44 rounded-xl border-0 bg-transparent px-2 py-2 text-sm font-bold text-foreground outline-none"
               aria-label={t('header.selectResume')}
             >
               {resumes.map(resume => (
                 <option key={resume.id} value={resume.id}>{resume.name}</option>
               ))}
             </select>
+
             {isEditingName ? (
               <input
                 ref={nameInputRef}
                 type="text"
                 value={nameInputValue}
-                onChange={handleNameChange}
-                onBlur={handleNameBlur}
-                onKeyDown={handleNameKeyDown}
-                className="w-32 text-sm p-1 bg-background rounded-md ring-1 ring-ring"
+                onChange={(e) => setNameInputValue(e.target.value)}
+                onBlur={commitName}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') nameInputRef.current?.blur();
+                  if (e.key === 'Escape') {
+                    setNameInputValue(currentResumeName);
+                    setIsEditingName(false);
+                  }
+                }}
+                className="w-36 rounded-xl bg-card px-3 py-2 text-sm font-bold ring-2 ring-[#00B5A5]/30"
               />
             ) : (
-              <button 
+              <button
                 onClick={() => setIsEditingName(true)}
-                className="text-sm font-semibold p-1.5 hover:bg-accent hover:text-accent-foreground rounded-md truncate max-w-32"
+                className="max-w-44 truncate rounded-xl px-3 py-2 text-sm font-black text-foreground hover:bg-accent"
                 title={t('header.renameResume')}
               >
                 {currentResumeName}
               </button>
             )}
-             <button
-                onClick={addResume}
-                className="p-1.5 text-muted-foreground hover:bg-accent rounded-md"
-                aria-label={t('header.addNewResume')}
-                title={t('header.addNewResume')}
-              >
-               <PlusIcon />
+
+            <button onClick={addResume} className="rounded-xl p-2 text-muted-foreground hover:bg-accent" aria-label={t('header.addNewResume')}>
+              <PlusIcon />
+            </button>
+            <button
+              onClick={() => deleteResume(activeResumeId)}
+              disabled={resumes.length <= 1}
+              className="rounded-xl p-2 text-red-500 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label={t('header.deleteCurrentResume')}
+            >
+              <TrashIcon />
+            </button>
+          </div>
+
+          <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black ${saveClass}`}>
+            <span className={`h-2 w-2 rounded-full ${saveStatus === 'saving' ? 'animate-pulse bg-blue-500' : saveStatus === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`} />
+            {saveLabel}
+            {saveStatus === 'error' && (
+              <button onClick={onRetrySave} className="ms-1 underline underline-offset-2">
+                {t('header.retrySave')}
               </button>
-              <button
-                onClick={handleDelete}
-                className="p-1.5 text-red-500 hover:bg-destructive/10 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label={t('header.deleteCurrentResume')}
-                title={t('header.deleteCurrentResume')}
-                disabled={resumes.length <= 1}
-              >
-                <TrashIcon />
-              </button>
+            )}
           </div>
         </div>
-        
-        {/* Actions & User profile section */}
-        <div className="flex items-center gap-3 md:gap-5 flex-wrap justify-center md:justify-end">
-          <div className="hidden lg:flex items-center text-sm font-mono text-muted-foreground mr-1" suppressHydrationWarning>
-            {currentTime.toLocaleTimeString('en-US')}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
+          <div className="flex rounded-2xl border border-border bg-background p-1">
+            <button
+              onClick={() => setLanguage('ar')}
+              className={`rounded-xl px-4 py-2 text-sm font-black ${language === 'ar' ? 'bg-[#00B5A5] text-white' : 'text-muted-foreground hover:bg-accent'}`}
+            >
+              العربية
+            </button>
+            <button
+              onClick={() => setLanguage('en')}
+              className={`rounded-xl px-4 py-2 text-sm font-black ${language === 'en' ? 'bg-[#00B5A5] text-white' : 'text-muted-foreground hover:bg-accent'}`}
+            >
+              English
+            </button>
           </div>
-          
+
           <button
-            onClick={toggleLanguage}
-            className="p-2 w-10 h-10 flex items-center justify-center font-bold text-sm rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-            aria-label="Toggle language"
-          >
-            {language === 'en' ? 'ع' : 'EN'}
-          </button>
-          
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
             aria-label={t('header.toggleTheme')}
           >
             {theme === 'light' ? <MoonIcon /> : <SunIcon />}
           </button>
 
-          {/* User badge and Logout action */}
-          <div className="flex items-center gap-2.5 pl-3 border-l border-border rtl:pl-0 rtl:pr-3 rtl:border-l-0 rtl:border-r">
+          <div className="flex items-center gap-3 border-s border-border ps-3">
             {userAvatar ? (
-              <img 
-                src={userAvatar} 
-                alt={userFullName} 
-                referrerPolicy="no-referrer"
-                className="w-8 h-8 rounded-full border border-border object-cover"
-              />
+              <img src={userAvatar} alt={userFullName} referrerPolicy="no-referrer" className="h-9 w-9 rounded-full border border-border object-cover" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 flex items-center justify-center text-xs font-bold font-mono">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-xs font-black text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
                 {userInitials}
               </div>
             )}
-            
-            <div className="flex flex-col text-start">
-              <span className="text-xs font-semibold text-foreground truncate max-w-[100px]" title={userFullName}>
-                {userFullName}
-              </span>
-              <button
-                onClick={signOut}
-                className="text-[10px] text-red-500 hover:text-red-400 font-bold transition-colors uppercase tracking-wider text-left rtl:text-right font-mono"
-              >
-                {language === 'ar' ? 'خروج' : 'Sign Out'}
+            <div className="text-start">
+              <p className="max-w-[140px] truncate text-xs font-black text-foreground" title={userFullName}>{userFullName}</p>
+              <button onClick={signOut} className="text-[11px] font-black text-red-500 hover:text-red-600">
+                {t('header.signOut')}
               </button>
             </div>
           </div>

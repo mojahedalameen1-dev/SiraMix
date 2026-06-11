@@ -1,20 +1,21 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# SiraMix
 
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/1faf5967-0c81-4192-beed-3d71cd86aaa4
+SiraMix is a bilingual resume builder for Arabic and English resumes. It lets users manage two independent resume versions in the same account, preview clean ATS-friendly templates, and export PDF, JPG, DOC, or JSON backups.
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+Prerequisites: Node.js 20+
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Create `.env.local` with Supabase public environment variables if needed.
 3. Run the app:
    `npm run dev`
+4. Check production build:
+   `npm run build`
+
+## Quality Checks
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm run test`
