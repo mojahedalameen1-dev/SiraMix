@@ -54,16 +54,19 @@ const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions
   );
 
   return (
-    <div className="space-y-5 rounded-2xl border border-border bg-card p-4 shadow-sm">
+    <div className="space-y-4 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-sm backdrop-blur">
       <div>
-        <label className="mb-2 block text-sm font-bold text-foreground">{t('templateControls.template')}</label>
-        <div className="grid max-h-[520px] grid-cols-2 gap-3 overflow-auto rounded-xl border border-border bg-background p-2">
+        <div className="mb-2 flex items-center justify-between">
+          <label className="block text-sm font-black text-foreground">{t('templateControls.template')}</label>
+          <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black text-emerald-700">ATS</span>
+        </div>
+        <div className="grid max-h-[440px] grid-cols-2 gap-3 overflow-auto rounded-2xl border border-border/80 bg-background/70 p-2">
           {TEMPLATES.map(template => (
             <button
               key={template.id}
               onClick={() => handleChange('template', template.id)}
-              className={`group rounded-xl border p-2 text-start transition hover:-translate-y-0.5 hover:shadow-md ${
-                options.template === template.id ? 'border-[#00B5A5] bg-[#00B5A5]/10' : 'border-transparent bg-secondary hover:bg-accent'
+              className={`group rounded-2xl border p-2 text-start transition duration-200 hover:-translate-y-1 hover:shadow-lg ${
+                options.template === template.id ? 'border-[#00B5A5] bg-[#00B5A5]/10 shadow-sm' : 'border-transparent bg-secondary/80 hover:bg-accent'
               }`}
             >
               <TemplateMiniPreview accent={template.accent} layout={template.layout} active={options.template === template.id} />
@@ -79,45 +82,41 @@ const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions
         </div>
       </div>
 
-      <div>
-        <label className="mb-2 block text-sm font-bold text-foreground">{t('templateControls.accentColor')}</label>
+      <div className="rounded-2xl border border-border/70 bg-background/60 p-3">
+        <label className="mb-3 block text-sm font-black text-foreground">{t('templateControls.accentColor')}</label>
         <div className="flex flex-wrap gap-2">
           {ACCENT_COLORS.map(color => (
             <button
               key={color.value}
               title={color.name}
               onClick={() => handleChange('accentColor', color.value)}
-              className={`h-9 w-9 rounded-full border-2 transition ${options.accentColor === color.value ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-card' : 'border-transparent'}`}
+              className={`h-9 w-9 rounded-full border-2 transition hover:scale-105 ${options.accentColor === color.value ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-card' : 'border-transparent'}`}
               style={{ backgroundColor: color.value }}
             />
           ))}
         </div>
       </div>
 
-      <div>
-        <label className="mb-2 block text-sm font-bold text-foreground">{t('templateControls.fontFamily')}</label>
-        <div className="grid max-h-72 grid-cols-1 gap-2 overflow-auto rounded-xl border border-border bg-background p-2">
+      <div className="rounded-2xl border border-border/70 bg-background/60 p-3">
+        <label htmlFor="resumeFont" className="mb-2 block text-sm font-black text-foreground">{t('templateControls.fontFamily')}</label>
+        <select
+          id="resumeFont"
+          value={options.fontFamily}
+          onChange={(event) => handleChange('fontFamily', event.target.value)}
+          className={`w-full rounded-xl border border-border bg-card px-3 py-3 text-sm font-bold text-foreground outline-none transition focus:border-[#00B5A5] focus:ring-4 focus:ring-[#00B5A5]/10 ${options.fontFamily}`}
+        >
           {availableFonts.map(font => (
-            <button
-              key={font.value}
-              type="button"
-              onClick={() => handleChange('fontFamily', font.value)}
-              className={`flex items-center justify-between rounded-lg border px-3 py-2 text-start text-sm transition ${
-                options.fontFamily === font.value
-                  ? 'border-[#00B5A5] bg-[#00B5A5]/10 text-foreground'
-                  : 'border-transparent hover:bg-accent'
-              }`}
-            >
-              <span className={font.value}>{font.name}</span>
-              {font.replacementFor && (
-                <span className="text-[10px] font-bold text-muted-foreground">{font.replacementFor}</span>
-              )}
-            </button>
+            <option key={font.value} value={font.value} className={font.value}>
+              {font.name}{font.replacementFor ? ` (${font.replacementFor})` : ''}
+            </option>
           ))}
-        </div>
+        </select>
+        <p className={`mt-3 rounded-xl bg-secondary px-3 py-2 text-sm text-foreground ${options.fontFamily}`}>
+          {language === 'ar' ? 'هذا مثال حي للخط المختار داخل السيرة.' : 'Live preview of the selected resume font.'}
+        </p>
       </div>
 
-      <div>
+      <div className="rounded-2xl border border-border/70 bg-background/60 p-3">
         <label htmlFor="fontSize" className="mb-2 block text-sm font-bold text-foreground">
           {t('templateControls.fontSize')} <span className="rounded-md bg-muted px-2 py-1 font-mono text-xs">{options.fontSize}</span>
         </label>
@@ -133,7 +132,7 @@ const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions
         />
       </div>
 
-      <div className="border-t border-border pt-4">
+      <div className="rounded-2xl border border-border/70 bg-background/60 p-3">
         <label className="mb-2 block text-sm font-bold text-foreground">{t('templateControls.lineSpacing')}</label>
         <div className="grid grid-cols-3 gap-2">
           {(['compact', 'normal', 'spacious'] as const).map(id => (
@@ -150,7 +149,7 @@ const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions
         </div>
       </div>
 
-      <div className="border-t border-border pt-4">
+      <div className="rounded-2xl border border-border/70 bg-background/60 p-3">
         <label className="mb-2 block text-sm font-bold text-foreground">{t('templateControls.pageMargins')}</label>
         <div className="grid grid-cols-3 gap-2">
           {(['compact', 'normal', 'wide'] as const).map(id => (

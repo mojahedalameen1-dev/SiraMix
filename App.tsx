@@ -348,10 +348,35 @@ const MainAppContent: React.FC<{
         signOut={signOut}
         saveStatus={saveStatus}
         onRetrySave={onRetrySave}
+        currentCompletion={currentCompletion}
+        otherCompletion={otherCompletion}
+        onCopyStructure={handleCopyStructureFromOtherLanguage}
       />
 
-      <main className="container mx-auto px-3 sm:px-4 py-5 lg:py-8 flex-grow space-y-5">
-        <section className="bg-card border border-border rounded-2xl shadow-sm p-4 lg:p-5">
+      <main className="container mx-auto px-3 sm:px-4 py-4 lg:py-6 flex-grow space-y-4">
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card/70 px-4 py-3 shadow-sm backdrop-blur">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#00B5A5] shadow-[0_0_0_5px_rgba(0,181,165,0.12)]" />
+            <div className="min-w-0">
+              <p className="text-sm font-black text-foreground">
+                {activeLanguage === 'ar' ? 'تعمل الآن على النسخة العربية' : 'You are editing the English version'}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {isRtl ? 'نسخة مستقلة، ليست ترجمة تلقائية. غيّر النسخة من الشريط العلوي.' : 'Independent version, not auto-translated. Switch versions from the top bar.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+            <span className="rounded-full bg-secondary px-3 py-1">
+              {activeLanguage === 'ar' ? 'العربية' : 'English'} {currentCompletion}%
+            </span>
+            <span className="hidden rounded-full bg-secondary px-3 py-1 sm:inline-flex">
+              {inactiveLanguage === 'ar' ? 'العربية' : 'English'} {otherCompletion}%
+            </span>
+          </div>
+        </section>
+
+        {false && (
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
@@ -394,7 +419,7 @@ const MainAppContent: React.FC<{
               </button>
             </div>
           </div>
-        </section>
+        )}
 
         <div className="lg:hidden bg-card border border-border rounded-2xl p-1.5 flex gap-1">
           <button
