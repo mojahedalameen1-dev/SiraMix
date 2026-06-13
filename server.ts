@@ -14,6 +14,35 @@ interface DocxExportRequest {
   };
 }
 
+const DEFAULT_DOCX_MARGINS = {
+  top: 950,
+  right: 950,
+  bottom: 950,
+  left: 950,
+  header: 720,
+  footer: 720,
+  gutter: 0,
+};
+
+function toPositiveNumber(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
+function toHalfPoints(value: unknown, fallback = 20) {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return Math.round(parsed * 2);
+    }
+  }
+
+  return fallback;
+}
+
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT || 3000);
@@ -29,21 +58,25 @@ async function startServer() {
 
       const options = body.documentOptions || {};
       const margin = options.margins || {};
+      const fontSize = toHalfPoints(options.fontSize);
       const docx = await htmlToDocx(body.html, null, {
         orientation: "portrait",
         pageSize: { width: 11906, height: 16838 },
         margins: {
-          top: margin.top || 950,
-          right: margin.right || 950,
-          bottom: margin.bottom || 950,
-          left: margin.left || 950,
+          top: toPositiveNumber(margin.top, DEFAULT_DOCX_MARGINS.top),
+          right: toPositiveNumber(margin.right, DEFAULT_DOCX_MARGINS.right),
+          bottom: toPositiveNumber(margin.bottom, DEFAULT_DOCX_MARGINS.bottom),
+          left: toPositiveNumber(margin.left, DEFAULT_DOCX_MARGINS.left),
+          header: DEFAULT_DOCX_MARGINS.header,
+          footer: DEFAULT_DOCX_MARGINS.footer,
+          gutter: DEFAULT_DOCX_MARGINS.gutter,
         },
         title: options.title || "SiraMix Resume",
         creator: "SiraMix",
         lastModifiedBy: "SiraMix",
         font: options.font || "Arial",
-        fontSize: options.fontSize || "10pt",
-        complexScriptFontSize: options.fontSize || "10pt",
+        fontSize,
+        complexScriptFontSize: fontSize,
         lang: options.lang || "en-US",
       });
 
