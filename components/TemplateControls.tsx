@@ -25,20 +25,55 @@ const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions
     setOptions({ ...options, [key]: value });
   };
 
+  const TemplateMiniPreview: React.FC<{ accent: string; layout: string; active: boolean }> = ({ accent, layout, active }) => (
+    <div className={`relative aspect-[3/4] overflow-hidden rounded-lg border bg-white p-2 shadow-sm ${active ? 'border-[#00B5A5]' : 'border-border'}`}>
+      <div className="h-1.5 w-2/3 rounded-full" style={{ backgroundColor: accent }} />
+      <div className="mt-1 h-1 w-1/2 rounded-full bg-slate-300" />
+      <div className="mt-2 h-px bg-slate-200" />
+      <div className={layout === 'single' || layout === 'centered' || layout === 'minimal' ? 'mt-2 space-y-1.5' : 'mt-2 grid grid-cols-[1.6fr_1fr] gap-2'}>
+        <div className="space-y-1.5">
+          <div className="h-1 w-1/3 rounded-full" style={{ backgroundColor: accent }} />
+          <div className="h-1 rounded-full bg-slate-200" />
+          <div className="h-1 w-5/6 rounded-full bg-slate-200" />
+          <div className="h-1 w-4/5 rounded-full bg-slate-200" />
+          <div className="h-1 w-1/3 rounded-full" style={{ backgroundColor: accent }} />
+          <div className="h-1 rounded-full bg-slate-200" />
+          <div className="h-1 w-3/4 rounded-full bg-slate-200" />
+        </div>
+        {!(layout === 'single' || layout === 'centered' || layout === 'minimal') && (
+          <div className="space-y-1">
+            <div className="h-1 w-2/3 rounded-full" style={{ backgroundColor: accent }} />
+            <div className="h-1 rounded-full bg-slate-200" />
+            <div className="h-1 rounded-full bg-slate-200" />
+            <div className="mt-2 h-8 rounded-full opacity-20" style={{ backgroundColor: accent }} />
+          </div>
+        )}
+      </div>
+      {active && <div className="absolute end-1 top-1 h-2.5 w-2.5 rounded-full bg-[#00B5A5]" />}
+    </div>
+  );
+
   return (
     <div className="space-y-5 rounded-2xl border border-border bg-card p-4 shadow-sm">
       <div>
         <label className="mb-2 block text-sm font-bold text-foreground">{t('templateControls.template')}</label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid max-h-[520px] grid-cols-2 gap-3 overflow-auto rounded-xl border border-border bg-background p-2">
           {TEMPLATES.map(template => (
             <button
               key={template.id}
               onClick={() => handleChange('template', template.id)}
-              className={`rounded-xl px-3 py-2 text-sm font-bold transition ${
-                options.template === template.id ? 'bg-[#202432] text-white dark:bg-[#d5ff63] dark:text-[#101418]' : 'bg-secondary hover:bg-accent'
+              className={`group rounded-xl border p-2 text-start transition hover:-translate-y-0.5 hover:shadow-md ${
+                options.template === template.id ? 'border-[#00B5A5] bg-[#00B5A5]/10' : 'border-transparent bg-secondary hover:bg-accent'
               }`}
             >
-              {template.name}
+              <TemplateMiniPreview accent={template.accent} layout={template.layout} active={options.template === template.id} />
+              <div className="mt-2">
+                <div className="text-xs font-black text-foreground">{language === 'ar' ? template.nameAr : template.nameEn}</div>
+                <div className="mt-1 flex items-center justify-between gap-2 text-[10px] font-bold text-muted-foreground">
+                  <span>{language === 'ar' ? template.categoryAr : template.categoryEn}</span>
+                  {template.atsReady && <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-emerald-700">ATS</span>}
+                </div>
+              </div>
             </button>
           ))}
         </div>

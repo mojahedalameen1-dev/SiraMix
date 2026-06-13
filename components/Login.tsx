@@ -1,69 +1,42 @@
-import React, { useState } from 'react';
-import { useAuth } from './AuthContext';
+import React, { useMemo, useState } from 'react';
+import { TEMPLATES } from '../constants';
 import { useLanguage } from '../i18n';
-import { SunIcon } from './icons/SunIcon';
-import { MoonIcon } from './icons/MoonIcon';
+import { useAuth } from './AuthContext';
 import { Logo } from './Logo';
+import { MoonIcon } from './icons/MoonIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
+import { SunIcon } from './icons/SunIcon';
 
 interface LoginProps {
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
 }
 
-const metrics = [
-  { value: '+8', labelAr: 'قوالب عربية وإنجليزية', labelEn: 'Arabic & English templates' },
-  { value: 'ATS', labelAr: 'تنسيق مناسب للفرز الآلي', labelEn: 'ATS-ready structure' },
-  { value: 'PDF', labelAr: 'تصدير فوري بدون علامة مائية', labelEn: 'No-watermark exports' },
+const productShots = [
+  { ar: 'المحتوى', en: 'Content', detailAr: 'أقسام واضحة وتعبئة مباشرة', detailEn: 'Clear sections and fast editing' },
+  { ar: 'القوالب', en: 'Templates', detailAr: '7 قوالب واقعية داخل المحرر', detailEn: '7 realistic editor templates' },
+  { ar: 'التصدير', en: 'Export', detailAr: 'PDF وDOCX وJPG بنقرة واحدة', detailEn: 'PDF, DOCX, and JPG in one click' },
 ];
 
 const steps = [
-  {
-    titleAr: 'اختر قالبًا يليق بقطاعك',
-    titleEn: 'Pick a template for your field',
-    bodyAr: 'ابدأ من قالب مرتب للمحاسبة، الإدارة، التقنية، الرعاية الصحية أو قالب عام قابل للتخصيص.',
-    bodyEn: 'Start with a clean template for finance, admin, tech, healthcare, or a flexible general layout.',
-  },
-  {
-    titleAr: 'اكتب محتوى مهنيًا واضحًا',
-    titleEn: 'Write sharper career content',
-    bodyAr: 'رتب الخبرات والمهارات والإنجازات بصياغة مفهومة للمسؤول وقابلة للقراءة من أنظمة ATS.',
-    bodyEn: 'Structure experience, skills, and achievements in a recruiter-friendly and ATS-readable format.',
-  },
-  {
-    titleAr: 'نزّل سيرتك وقدّم بثقة',
-    titleEn: 'Download and apply confidently',
-    bodyAr: 'صدّر سيرتك كملف PDF أو صورة، واحتفظ بنسخة قابلة للتعديل في أي وقت.',
-    bodyEn: 'Export as PDF or image and keep an editable version ready for later updates.',
-  },
+  { ar: 'اختر قالبًا يناسب قطاعك', en: 'Choose a field-ready template' },
+  { ar: 'اكتب نسخة عربية وإنجليزية مستقلة', en: 'Write separate Arabic and English versions' },
+  { ar: 'صدّر سيرتك وقدّم بثقة', en: 'Export and apply with confidence' },
 ];
 
-const featureCards = [
+const faqs = [
   {
-    titleAr: 'تجربة عربية أصلية',
-    titleEn: 'Native Arabic experience',
-    bodyAr: 'اتجاه RTL، محتوى عربي طبيعي، ومساحات قراءة مريحة للباحثين عن عمل في السوق السعودي والخليجي.',
-    bodyEn: 'RTL layout, natural Arabic copy, and readable spacing for GCC job seekers.',
+    ar: ['هل أقدر أبدأ مجانًا؟', 'نعم. يمكنك تجربة المحرر والقوالب والتصدير بدون بطاقة بنكية.'],
+    en: ['Can I start for free?', 'Yes. You can try the editor, templates, and exports without a card.'],
   },
   {
-    titleAr: 'مصمم للتقديم الحقيقي',
-    titleEn: 'Built for real applications',
-    bodyAr: 'لا يركز على الشكل فقط؛ بل يساعدك على إبراز الدور، النتائج، الكلمات المفتاحية، وسهولة الفحص.',
-    bodyEn: 'Not just visual polish. It helps surface roles, outcomes, keywords, and scan-friendly sections.',
+    ar: ['هل القوالب مناسبة للـ ATS؟', 'القوالب مبنية بعناوين وأقسام واضحة تساعد أنظمة الفرز على قراءة السيرة.'],
+    en: ['Are the templates ATS-friendly?', 'Templates use clear structure and familiar section labels for screening systems.'],
   },
   {
-    titleAr: 'خصوصية وتحكم',
-    titleEn: 'Privacy and control',
-    bodyAr: 'سيرتك تبقى باسمك، بدون علامة مائية، ويمكنك تعديلها أو حذفها عند الحاجة.',
-    bodyEn: 'Your resume stays yours, without watermarks, and can be edited or deleted when needed.',
+    ar: ['هل العربية والإنجليزية نفس المحتوى؟', 'لا. يمكنك بناء نسختين مستقلتين من نفس الحساب، وليست ترجمة تلقائية.'],
+    en: ['Are Arabic and English the same content?', 'No. You can build two independent versions from the same account.'],
   },
-];
-
-const templateNames = [
-  ['محترف تنفيذي', 'Executive'],
-  ['تقني حديث', 'Modern Tech'],
-  ['محاسبة ومالية', 'Finance'],
-  ['طبي وإداري', 'Healthcare'],
 ];
 
 export const Login: React.FC<LoginProps> = ({ theme, setTheme }) => {
@@ -71,30 +44,25 @@ export const Login: React.FC<LoginProps> = ({ theme, setTheme }) => {
   const { language, setLanguage } = useLanguage();
   const [authError, setAuthError] = useState<string | null>(null);
   const isRtl = language === 'ar';
+  const featuredTemplates = useMemo(() => TEMPLATES.filter(template => !['classic', 'modern'].includes(template.id)), []);
 
   const copy = {
     navFeatures: isRtl ? 'المزايا' : 'Features',
     navTemplates: isRtl ? 'القوالب' : 'Templates',
     navFaq: isRtl ? 'الأسئلة' : 'FAQ',
-    heroEyebrow: isRtl ? 'سيرة ذاتية عربية وإنجليزية في دقائق' : 'Arabic and English resumes in minutes',
-    heroTitle: isRtl
-      ? 'سيرة ذاتية تقنع المسؤول قبل المقابلة'
-      : 'A resume that earns attention before the interview',
+    heroEyebrow: isRtl ? 'سيرتان مستقلتان: عربية وإنجليزية' : 'Two independent resumes: Arabic and English',
+    heroTitle: isRtl ? 'سيرة جاهزة للتقديم قبل أن تفوتك الفرصة' : 'Build the resume before the opportunity moves on',
     heroBody: isRtl
-      ? 'سيرا ميكس يساعدك تبني سيرة احترافية بلغة عربية واضحة، تنسيق نظيف، وقوالب مناسبة للتقديم في الشركات داخل المملكة وخارجها.'
-      : 'SiraMix helps you build a polished resume with clean structure, bilingual support, and templates made for serious job applications.',
+      ? 'سيرا ميكس يساعدك تبني سيرة احترافية للسوق السعودي والعربي: قوالب واقعية، فحص ATS محلي، وتصدير فوري بدون تعقيد.'
+      : 'SiraMix helps you build polished resumes for serious applications: realistic templates, local ATS checks, and clean exports.',
     primaryCta: isRtl ? 'ابدأ الآن عبر Google' : 'Continue with Google',
-    secondaryNote: isRtl ? 'مجاني للبدء، بدون بطاقة بنكية وبدون علامة مائية' : 'Free to start. No card. No watermark.',
-    previewName: isRtl ? 'نورة العتيبي' : 'Noura Alotaibi',
-    previewRole: isRtl ? 'مديرة عمليات | خبرة 7 سنوات' : 'Operations Manager | 7 years',
-    previewSummary: isRtl
-      ? 'قائدة تشغيل تملك خبرة في تحسين الإجراءات، إدارة الفرق، ورفع مؤشرات الأداء في بيئات عمل سريعة.'
-      : 'Operations leader experienced in process improvement, team management, and performance growth.',
-    stepsTitle: isRtl ? 'من صفحة فارغة إلى سيرة جاهزة للتقديم' : 'From blank page to application-ready resume',
-    featuresTitle: isRtl ? 'تجربة مصممة للباحث العربي عن عمل' : 'Designed for Arabic-first job seekers',
-    templatesTitle: isRtl ? 'قوالب هادئة، واضحة، وتقرأها أنظمة التوظيف' : 'Clean templates that hiring systems can read',
-    faqTitle: isRtl ? 'أسئلة مهمة قبل البدء' : 'Before you start',
-    bottomTitle: isRtl ? 'جاهز تبني سيرة تليق بخبرتك؟' : 'Ready to build a stronger resume?',
+    secondaryCta: isRtl ? 'شاهد القوالب' : 'View templates',
+    heroNote: isRtl ? 'مجاني للبدء، بدون بطاقة بنكية، وبدون علامة مائية.' : 'Free to start. No card. No watermark.',
+    templatesTitle: isRtl ? 'قوالب واقعية داخل النظام' : 'Real templates inside the product',
+    templatesBody: isRtl ? 'المعرض هنا ليس رسومات تسويقية. هذه نفس القوالب المتاحة داخل المحرر والتصدير.' : 'These are not marketing mockups. They are the same templates available in the editor and exports.',
+    productTitle: isRtl ? 'كيف تبدو داخل المحرر؟' : 'What does the editor feel like?',
+    featuresTitle: isRtl ? 'مصممة للباحث العربي عن عمل' : 'Designed for Arabic-first job seekers',
+    bottomTitle: isRtl ? 'جاهز تبني سيرة تليق بخبرتك؟' : 'Ready to build a resume that carries your experience?',
   };
 
   const handleSignIn = async () => {
@@ -103,144 +71,96 @@ export const Login: React.FC<LoginProps> = ({ theme, setTheme }) => {
       await signInWithGoogle();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      setAuthError(
-        isRtl
-          ? `تعذر بدء تسجيل الدخول. ${message}`
-          : `Could not start sign in. ${message}`
-      );
+      setAuthError(isRtl ? `تعذر بدء تسجيل الدخول. ${message}` : `Could not start sign in. ${message}`);
     }
   };
 
   return (
-    <main
-      dir={isRtl ? 'rtl' : 'ltr'}
-      className="min-h-screen overflow-x-hidden bg-[#f7f3ed] text-[#202432] dark:bg-[#101418] dark:text-white font-thmanyah"
-    >
-      <header className="sticky top-0 z-40 border-b border-black/5 bg-[#f7f3ed]/85 backdrop-blur-xl dark:border-white/10 dark:bg-[#101418]/85">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
+    <main dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen overflow-x-hidden bg-[#f5f0e8] text-[#202432] dark:bg-[#0f1418] dark:text-white font-thmanyah">
+      <header className="sticky top-0 z-40 border-b border-black/5 bg-[#f5f0e8]/85 backdrop-blur-xl dark:border-white/10 dark:bg-[#0f1418]/85">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-8">
           <Logo size="md" showText={false} />
-
-          <nav className="hidden items-center gap-8 text-sm font-bold text-[#5f625d] dark:text-white/65 md:flex">
-            <a href="#features" className="hover:text-[#202432] dark:hover:text-white">{copy.navFeatures}</a>
-            <a href="#templates" className="hover:text-[#202432] dark:hover:text-white">{copy.navTemplates}</a>
-            <a href="#faq" className="hover:text-[#202432] dark:hover:text-white">{copy.navFaq}</a>
+          <nav className="hidden items-center gap-8 text-sm font-black text-[#62635f] dark:text-white/65 md:flex">
+            <a href="#features" className="transition hover:text-[#123d35]">{copy.navFeatures}</a>
+            <a href="#templates" className="transition hover:text-[#123d35]">{copy.navTemplates}</a>
+            <a href="#faq" className="transition hover:text-[#123d35]">{copy.navFaq}</a>
           </nav>
-
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setLanguage(isRtl ? 'en' : 'ar')}
-              aria-label="Toggle language"
-              className="h-10 min-w-10 rounded-full border border-black/10 bg-white px-3 text-sm font-black text-[#202432] shadow-sm transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-white"
-            >
-              {isRtl ? 'EN' : 'ع'}
+            <button type="button" onClick={() => setLanguage(isRtl ? 'en' : 'ar')} className="h-10 rounded-full border border-black/10 bg-white px-3 text-xs font-black shadow-sm dark:border-white/10 dark:bg-white/10">
+              {isRtl ? 'EN' : 'عربي'}
             </button>
-            <button
-              type="button"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              aria-label="Toggle theme"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white text-[#202432] shadow-sm transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-white"
-            >
-              <span className="flex h-5 w-5 items-center justify-center [&>svg]:h-5 [&>svg]:w-5">
-                {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-              </span>
+            <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="grid h-10 w-10 place-items-center rounded-full border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-white/10">
+              <span className="[&>svg]:h-5 [&>svg]:w-5">{theme === 'dark' ? <SunIcon /> : <MoonIcon />}</span>
             </button>
-            <button
-              type="button"
-              onClick={handleSignIn}
-              disabled={loading}
-              className="hidden rounded-full bg-[#202432] px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-[#0f1219] disabled:cursor-not-allowed disabled:opacity-60 sm:inline-flex dark:bg-[#d5ff63] dark:text-[#101418]"
-            >
+            <button type="button" onClick={handleSignIn} disabled={loading} className="hidden rounded-full bg-[#17201d] px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-black/10 transition hover:-translate-y-0.5 disabled:opacity-60 sm:inline-flex">
               {copy.primaryCta}
             </button>
           </div>
         </div>
       </header>
 
-      <section className="relative">
-        <div className="absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_25%_20%,rgba(213,255,99,0.35),transparent_32%),radial-gradient(circle_at_75%_5%,rgba(22,163,121,0.18),transparent_28%)]" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 lg:grid-cols-[1fr_0.85fr] lg:px-8 lg:py-24">
-          <div className="max-w-3xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm font-black text-[#2f6f4e] shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-[#d5ff63]">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_16%,rgba(213,255,99,0.35),transparent_28%),radial-gradient(circle_at_18%_8%,rgba(22,101,82,0.18),transparent_24%)]" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-14 lg:grid-cols-[1fr_0.88fr] lg:px-8 lg:py-24">
+          <div className="animate-rise-in">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-900/10 bg-white/70 px-4 py-2 text-sm font-black text-[#126052] shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-[#d5ff63]">
               <SparklesIcon className="h-4 w-4" />
               {copy.heroEyebrow}
             </div>
-            <h1 className="max-w-4xl text-5xl font-black leading-[1.05] tracking-normal text-[#202432] dark:text-white md:text-7xl">
+            <h1 className="max-w-4xl text-5xl font-black leading-[1.02] tracking-normal text-[#202432] dark:text-white md:text-7xl">
               {copy.heroTitle}
             </h1>
-            <p className="mt-7 max-w-2xl text-xl font-medium leading-9 text-[#65645f] dark:text-white/70">
+            <p className="mt-7 max-w-2xl text-lg font-bold leading-9 text-[#64625c] dark:text-white/70 md:text-xl">
               {copy.heroBody}
             </p>
-
-            <div className="mt-9 flex flex-col gap-4 sm:flex-row sm:items-center">
-              <button
-                type="button"
-                onClick={handleSignIn}
-                disabled={loading}
-                className="inline-flex min-h-[56px] items-center justify-center rounded-full bg-[#202432] px-8 text-base font-black text-white shadow-xl shadow-black/15 transition hover:-translate-y-0.5 hover:bg-[#0f1219] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-[#d5ff63] dark:text-[#101418]"
-              >
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button type="button" onClick={handleSignIn} disabled={loading} className="inline-flex min-h-[54px] items-center justify-center rounded-full bg-[#17201d] px-8 text-base font-black text-white shadow-xl shadow-black/15 transition hover:-translate-y-0.5 disabled:opacity-60">
                 {loading ? (isRtl ? 'جار التحميل...' : 'Loading...') : copy.primaryCta}
               </button>
-              <p className="text-sm font-bold text-[#74736d] dark:text-white/55">{copy.secondaryNote}</p>
+              <a href="#templates" className="inline-flex min-h-[54px] items-center justify-center rounded-full border border-black/10 bg-white px-7 text-base font-black text-[#17201d] shadow-sm transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-white">
+                {copy.secondaryCta}
+              </a>
             </div>
-
-            {authError && (
-              <div className="mt-5 max-w-2xl rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold leading-7 text-red-700 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-200">
-                {authError}
-              </div>
-            )}
-
-            <div className="mt-12 grid gap-4 sm:grid-cols-3">
-              {metrics.map((item) => (
-                <div key={item.value} className="rounded-3xl border border-black/5 bg-white/65 p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
-                  <div className="text-3xl font-black text-[#202432] dark:text-[#d5ff63]">{item.value}</div>
-                  <div className="mt-2 text-sm font-bold leading-6 text-[#686761] dark:text-white/60">
-                    {isRtl ? item.labelAr : item.labelEn}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="mt-4 text-sm font-bold text-[#73716a] dark:text-white/55">{copy.heroNote}</p>
+            {authError && <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">{authError}</div>}
           </div>
 
-          <div className="relative">
-            <div className="rounded-[2rem] border border-black/10 bg-white p-4 shadow-2xl shadow-black/10 dark:border-white/10 dark:bg-[#171d22]">
-              <div className="rounded-[1.5rem] bg-[#f9fbf7] p-6 dark:bg-[#0f1418]">
-                <div className="flex items-start justify-between gap-4 border-b border-black/10 pb-5 dark:border-white/10">
-                  <div>
-                    <p className="text-3xl font-black text-[#202432] dark:text-white">{copy.previewName}</p>
-                    <p className="mt-2 text-sm font-black text-[#2f6f4e] dark:text-[#d5ff63]">{copy.previewRole}</p>
-                  </div>
-                  <div className="rounded-2xl bg-[#d5ff63] px-3 py-2 text-xs font-black text-[#202432]">ATS 92%</div>
+          <div className="animate-float-slow rounded-[2rem] border border-black/10 bg-white p-4 shadow-2xl shadow-black/10 dark:border-white/10 dark:bg-[#171d22]">
+            <div className="flex items-center justify-between rounded-2xl bg-[#f7fbf4] px-4 py-3 text-[11px] font-black dark:bg-white/5">
+              {['Arabic', 'English', 'ATS', 'Export'].map((item, index) => (
+                <span key={item} className={index === 2 ? 'rounded-full bg-[#d5ff63] px-2 py-1 text-[#17201d]' : 'text-[#59615d] dark:text-white/60'}>{item}</span>
+              ))}
+            </div>
+            <div className="mt-4 rounded-[1.5rem] bg-[#fbfcfa] p-6 dark:bg-[#101418]">
+              <div className="flex items-start justify-between border-b border-black/10 pb-4 dark:border-white/10">
+                <div>
+                  <div className="h-4 w-44 animate-type-line rounded-full bg-[#202432] dark:bg-white" />
+                  <div className="mt-3 h-2.5 w-36 animate-type-line rounded-full bg-[#18a56f]" />
                 </div>
-                <p className="mt-5 text-sm font-medium leading-7 text-[#65645f] dark:text-white/65">{copy.previewSummary}</p>
-                <div className="mt-6 space-y-4">
-                  {[0, 1, 2].map((row) => (
-                    <div key={row} className="rounded-2xl border border-black/5 bg-white p-4 dark:border-white/10 dark:bg-white/5">
-                      <div className="h-3 w-2/5 rounded-full bg-[#202432]/80 dark:bg-white/80" />
-                      <div className="mt-3 h-2 w-full rounded-full bg-black/10 dark:bg-white/10" />
-                      <div className="mt-2 h-2 w-4/5 rounded-full bg-black/10 dark:bg-white/10" />
-                    </div>
-                  ))}
-                </div>
+                <div className="rounded-2xl bg-[#d5ff63] px-3 py-2 text-xs font-black text-[#17201d]">ATS 92%</div>
               </div>
+              <div className="mt-5 space-y-4">
+                {[0, 1, 2, 3].map(row => (
+                  <div key={row} className="rounded-2xl border border-black/5 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+                    <div className="h-2.5 w-2/5 rounded-full bg-[#202432]/85 dark:bg-white/80" />
+                    <div className="mt-3 h-2 w-full rounded-full bg-black/10 dark:bg-white/10" />
+                    <div className="mt-2 h-2 w-5/6 rounded-full bg-black/10 dark:bg-white/10" />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 inline-flex rounded-full bg-emerald-500/10 px-3 py-2 text-xs font-black text-emerald-700">{isRtl ? 'PDF جاهز للتصدير' : 'PDF ready to export'}</div>
             </div>
           </div>
         </div>
       </section>
 
       <section className="bg-white py-20 dark:bg-[#12181d]">
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <h2 className="max-w-3xl text-4xl font-black leading-tight text-[#202432] dark:text-white md:text-5xl">
-            {copy.stepsTitle}
-          </h2>
-          <div className="mt-10 grid gap-5 lg:grid-cols-3">
+        <div className="mx-auto max-w-7xl px-4 py-16 lg:px-8">
+          <div className="grid gap-4 md:grid-cols-3">
             {steps.map((step, index) => (
-              <article key={step.titleEn} className="rounded-3xl border border-black/5 bg-[#f7f3ed] p-7 dark:border-white/10 dark:bg-white/5">
-                <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#202432] text-lg font-black text-white dark:bg-[#d5ff63] dark:text-[#101418]">
-                  {index + 1}
-                </div>
-                <h3 className="text-2xl font-black text-[#202432] dark:text-white">{isRtl ? step.titleAr : step.titleEn}</h3>
-                <p className="mt-4 text-base font-medium leading-8 text-[#686761] dark:text-white/65">{isRtl ? step.bodyAr : step.bodyEn}</p>
+              <article key={step.en} className="reveal-card rounded-2xl border border-black/5 bg-[#f5f0e8] p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
+                <div className="mb-6 grid h-11 w-11 place-items-center rounded-xl bg-[#17201d] text-base font-black text-white">{index + 1}</div>
+                <h3 className="text-xl font-black">{isRtl ? step.ar : step.en}</h3>
               </article>
             ))}
           </div>
@@ -248,55 +168,56 @@ export const Login: React.FC<LoginProps> = ({ theme, setTheme }) => {
       </section>
 
       <section id="templates" className="py-20">
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-            <h2 className="max-w-3xl text-4xl font-black leading-tight text-[#202432] dark:text-white md:text-5xl">
-              {copy.templatesTitle}
-            </h2>
-            <button
-              type="button"
-              onClick={handleSignIn}
-              disabled={loading}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-black/10 bg-white px-6 text-sm font-black text-[#202432] shadow-sm transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-white"
-            >
-              {isRtl ? 'استعرض القوالب داخل المحرر' : 'Browse templates in editor'}
+        <div className="mx-auto max-w-7xl px-4 lg:px-8">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <h2 className="text-4xl font-black leading-tight md:text-5xl">{copy.templatesTitle}</h2>
+              <p className="mt-4 max-w-2xl text-base font-bold leading-8 text-[#64625c] dark:text-white/65">{copy.templatesBody}</p>
+            </div>
+            <button type="button" onClick={handleSignIn} className="rounded-full border border-black/10 bg-white px-6 py-3 text-sm font-black shadow-sm transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10">
+              {copy.primaryCta}
             </button>
           </div>
-
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {templateNames.map(([ar, en], index) => (
-              <div key={en} className="group rounded-3xl border border-black/5 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-white/10 dark:bg-white/5">
-                <div className="aspect-[3/4] rounded-2xl bg-[#f9fbf7] p-4 dark:bg-[#0f1418]">
-                  <div className={`h-full rounded-xl border bg-white p-4 dark:border-white/10 dark:bg-[#171d22] ${index % 2 === 0 ? 'border-[#2f6f4e]/30' : 'border-[#d8a15d]/35'}`}>
-                    <div className="h-3 w-2/3 rounded-full bg-[#202432]" />
-                    <div className="mt-2 h-2 w-1/2 rounded-full bg-black/15" />
-                    <div className="my-5 h-px bg-black/10" />
-                    <div className="space-y-3">
-                      <div className="h-2 rounded-full bg-black/10" />
-                      <div className="h-2 w-5/6 rounded-full bg-black/10" />
-                      <div className="h-2 w-2/3 rounded-full bg-black/10" />
-                    </div>
-                    <div className="mt-6 grid grid-cols-2 gap-2">
-                      <div className="h-16 rounded-lg bg-[#d5ff63]/45" />
-                      <div className="h-16 rounded-lg bg-black/5" />
+            {featuredTemplates.map(template => (
+              <article key={template.id} className="group rounded-2xl border border-black/5 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-white/10 dark:bg-white/5">
+                <div className="aspect-[3/4] rounded-xl bg-[#f7fbf4] p-4 dark:bg-[#101418]">
+                  <div className="h-full rounded-lg border bg-white p-3 dark:border-white/10 dark:bg-[#171d22]" style={{ borderColor: `${template.accent}55` }}>
+                    <div className="h-2 w-2/3 rounded-full" style={{ backgroundColor: template.accent }} />
+                    <div className="mt-2 h-1.5 w-1/2 rounded-full bg-slate-300" />
+                    <div className="my-4 h-px bg-slate-200" />
+                    <div className={template.layout === 'single' || template.layout === 'centered' || template.layout === 'minimal' ? 'space-y-2' : 'grid grid-cols-[1.5fr_1fr] gap-2'}>
+                      <div className="space-y-2">
+                        <div className="h-1.5 rounded-full bg-slate-200" />
+                        <div className="h-1.5 w-5/6 rounded-full bg-slate-200" />
+                        <div className="h-1.5 w-3/4 rounded-full bg-slate-200" />
+                        <div className="h-1.5 rounded-full bg-slate-200" />
+                      </div>
+                      {!(template.layout === 'single' || template.layout === 'centered' || template.layout === 'minimal') && <div className="rounded-lg opacity-25" style={{ backgroundColor: template.accent }} />}
                     </div>
                   </div>
                 </div>
-                <p className="mt-4 text-lg font-black text-[#202432] dark:text-white">{isRtl ? ar : en}</p>
-              </div>
+                <div className="mt-4 flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-black">{isRtl ? template.nameAr : template.nameEn}</h3>
+                    <p className="mt-1 text-xs font-bold text-[#686761] dark:text-white/60">{isRtl ? template.categoryAr : template.categoryEn}</p>
+                  </div>
+                  <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-black text-emerald-700">ATS</span>
+                </div>
+              </article>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="features" className="bg-[#202432] py-20 text-white dark:bg-black">
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
+      <section id="features" className="bg-[#17201d] py-20 text-white">
+        <div className="mx-auto max-w-7xl px-4 lg:px-8">
           <h2 className="max-w-3xl text-4xl font-black leading-tight md:text-5xl">{copy.featuresTitle}</h2>
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
-            {featureCards.map((feature) => (
-              <article key={feature.titleEn} className="rounded-3xl border border-white/10 bg-white/7 p-7">
-                <h3 className="text-2xl font-black text-[#d5ff63]">{isRtl ? feature.titleAr : feature.titleEn}</h3>
-                <p className="mt-4 text-base font-medium leading-8 text-white/70">{isRtl ? feature.bodyAr : feature.bodyEn}</p>
+            {productShots.map(shot => (
+              <article key={shot.en} className="rounded-2xl border border-white/10 bg-white/[0.07] p-6">
+                <h3 className="text-2xl font-black text-[#d5ff63]">{isRtl ? shot.ar : shot.en}</h3>
+                <p className="mt-4 text-base font-bold leading-8 text-white/70">{isRtl ? shot.detailAr : shot.detailEn}</p>
               </article>
             ))}
           </div>
@@ -304,32 +225,26 @@ export const Login: React.FC<LoginProps> = ({ theme, setTheme }) => {
       </section>
 
       <section id="faq" className="py-20">
-        <div className="mx-auto max-w-4xl px-5 lg:px-8">
-          <h2 className="text-center text-4xl font-black text-[#202432] dark:text-white">{copy.faqTitle}</h2>
+        <div className="mx-auto max-w-4xl px-4 lg:px-8">
+          <h2 className="text-center text-4xl font-black">{isRtl ? 'أسئلة مهمة قبل البدء' : 'Before you start'}</h2>
           <div className="mt-10 space-y-4">
-            {[
-              [isRtl ? 'هل أقدر أبدأ مجانًا؟' : 'Can I start for free?', isRtl ? 'نعم. يمكنك إنشاء سيرة وتجربة القوالب والتصدير بدون بطاقة بنكية.' : 'Yes. You can create a resume, try templates, and export without a card.'],
-              [isRtl ? 'هل القوالب مناسبة للـ ATS؟' : 'Are templates ATS-friendly?', isRtl ? 'القوالب مصممة ببنية واضحة وعناوين مألوفة تساعد أنظمة الفرز على قراءة المحتوى.' : 'Templates use clear structure and familiar section labels to help screening systems parse content.'],
-              [isRtl ? 'لماذا أحتاج تسجيل الدخول؟' : 'Why do I need to sign in?', isRtl ? 'حتى نحفظ سيرتك بأمان ونرجعها لك عند تعديلها أو تحميل نسخة جديدة.' : 'So your resume can be saved securely and restored when you edit or export again.'],
-            ].map(([q, a]) => (
-              <details key={q} className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
-                <summary className="cursor-pointer text-lg font-black text-[#202432] dark:text-white">{q}</summary>
-                <p className="mt-4 text-base font-medium leading-8 text-[#686761] dark:text-white/65">{a}</p>
-              </details>
-            ))}
+            {faqs.map(item => {
+              const [q, a] = isRtl ? item.ar : item.en;
+              return (
+                <details key={q} className="rounded-2xl border border-black/5 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
+                  <summary className="cursor-pointer text-lg font-black">{q}</summary>
+                  <p className="mt-4 text-base font-bold leading-8 text-[#686761] dark:text-white/65">{a}</p>
+                </details>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <section className="px-5 pb-20">
-        <div className="mx-auto max-w-5xl rounded-[2rem] bg-[#d5ff63] px-6 py-12 text-center text-[#202432] shadow-xl shadow-black/10">
+      <section className="px-4 pb-20">
+        <div className="mx-auto max-w-5xl rounded-[1.75rem] border border-black/5 bg-white px-6 py-12 text-center shadow-xl shadow-black/10 dark:border-white/10 dark:bg-white/5">
           <h2 className="text-4xl font-black leading-tight md:text-5xl">{copy.bottomTitle}</h2>
-          <button
-            type="button"
-            onClick={handleSignIn}
-            disabled={loading}
-            className="mt-8 inline-flex min-h-[54px] items-center justify-center rounded-full bg-[#202432] px-8 text-base font-black text-white transition hover:-translate-y-0.5 disabled:opacity-60"
-          >
+          <button type="button" onClick={handleSignIn} disabled={loading} className="mt-8 rounded-full bg-[#17201d] px-8 py-4 text-base font-black text-white transition hover:-translate-y-0.5 disabled:opacity-60">
             {copy.primaryCta}
           </button>
         </div>
@@ -338,10 +253,10 @@ export const Login: React.FC<LoginProps> = ({ theme, setTheme }) => {
       <footer className="border-t border-black/5 bg-white py-10 text-center dark:border-white/10 dark:bg-[#101418]">
         <div className="flex items-center justify-center gap-3">
           <Logo size="sm" showText={false} />
-          <span className="text-lg font-black text-[#202432] dark:text-white">SiraMix</span>
+          <span className="text-lg font-black">SiraMix</span>
         </div>
         <p className="mt-3 text-sm font-bold text-[#74736d] dark:text-white/50">
-          {isRtl ? 'صناعة عربية لسير ذاتية أوضح وأقوى' : 'Arabic-first resume building for stronger applications'}
+          {isRtl ? 'صناعة عربية لسيرة أوضح وأقوى' : 'Arabic-first resume building for stronger applications'}
         </p>
       </footer>
     </main>

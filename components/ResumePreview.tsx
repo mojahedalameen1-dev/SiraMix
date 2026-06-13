@@ -6,6 +6,7 @@ import { useTranslation } from '../i18n';
 import { ResumeData, TemplateOptions } from '../types';
 import ClassicTemplate from './templates/ClassicTemplate';
 import ModernTemplate from './templates/ModernTemplate';
+import RealisticTemplate, { RealisticTemplateId } from './templates/RealisticTemplate';
 
 interface ResumePreviewProps {
   data: ResumeData;
@@ -38,6 +39,15 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
   const A4_HEIGHT_PX = 1122.5;
   const fileName = `SiraMix-${data.personalInfo.name || 'Resume'}`.replace(/\s+/g, '-');
   const selectedFont = getFontFamilyOption(options.fontFamily);
+  const realisticTemplateIds = new Set<string>([
+    'emerald-two-column',
+    'audit-classic',
+    'blue-analyst',
+    'centered-executive',
+    'consulting-timeline',
+    'dense-executive',
+    'minimal-technical',
+  ]);
 
   const triggerDownload = (blob: Blob, downloadName: string) => {
     const url = URL.createObjectURL(blob);
@@ -393,6 +403,15 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
         >
           {options.template === 'classic' && <ClassicTemplate ref={previewRef} data={data} options={options} language={language} />}
           {options.template === 'modern' && <ModernTemplate ref={previewRef} data={data} options={options} language={language} />}
+          {realisticTemplateIds.has(options.template) && (
+            <RealisticTemplate
+              ref={previewRef}
+              data={data}
+              options={options}
+              language={language}
+              variant={options.template as RealisticTemplateId}
+            />
+          )}
         </div>
       </div>
     </div>

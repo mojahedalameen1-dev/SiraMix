@@ -165,9 +165,28 @@ export function getFontFamilyOption(value: string): FontFamilyOption {
   return FONT_FAMILIES.find(font => font.value === value) || ARABIC_FONT_FAMILIES[0];
 }
 
-export const TEMPLATES = [
-  { id: 'classic', name: 'Classic / رسمي' },
-  { id: 'modern', name: 'Modern / حديث' },
+export interface ResumeTemplateOption {
+  id: string;
+  name: string;
+  nameAr: string;
+  nameEn: string;
+  categoryAr: string;
+  categoryEn: string;
+  accent: string;
+  layout: 'single' | 'two-column' | 'centered' | 'timeline' | 'dense' | 'minimal';
+  atsReady?: boolean;
+}
+
+export const TEMPLATES: ResumeTemplateOption[] = [
+  { id: 'classic', name: 'Classic / رسمي', nameAr: 'رسمي كلاسيكي', nameEn: 'Classic', categoryAr: 'عام', categoryEn: 'General', accent: '#00B5A5', layout: 'single', atsReady: true },
+  { id: 'modern', name: 'Modern / حديث', nameAr: 'حديث', nameEn: 'Modern', categoryAr: 'عام', categoryEn: 'General', accent: '#00B5A5', layout: 'two-column', atsReady: true },
+  { id: 'emerald-two-column', name: 'Emerald Two Column', nameAr: 'عمودان زمردي', nameEn: 'Emerald Two Column', categoryAr: 'تقني', categoryEn: 'Tech', accent: '#18a56f', layout: 'two-column', atsReady: true },
+  { id: 'audit-classic', name: 'Audit Classic', nameAr: 'تدقيق كلاسيكي', nameEn: 'Audit Classic', categoryAr: 'مالي', categoryEn: 'Finance', accent: '#5867a8', layout: 'single', atsReady: true },
+  { id: 'blue-analyst', name: 'Blue Analyst Sidebar', nameAr: 'محلل أزرق', nameEn: 'Blue Analyst', categoryAr: 'تحليل', categoryEn: 'Analysis', accent: '#1f66c2', layout: 'two-column', atsReady: true },
+  { id: 'centered-executive', name: 'Centered Executive', nameAr: 'تنفيذي مركزي', nameEn: 'Centered Executive', categoryAr: 'إداري', categoryEn: 'Executive', accent: '#375d9d', layout: 'centered', atsReady: true },
+  { id: 'consulting-timeline', name: 'Consulting Timeline', nameAr: 'استشاري زمني', nameEn: 'Consulting Timeline', categoryAr: 'استشارات', categoryEn: 'Consulting', accent: '#2f6f8f', layout: 'timeline', atsReady: true },
+  { id: 'dense-executive', name: 'Dense Executive Split', nameAr: 'تنفيذي مكثف', nameEn: 'Dense Executive', categoryAr: 'قيادي', categoryEn: 'Leadership', accent: '#0b6bb7', layout: 'dense', atsReady: true },
+  { id: 'minimal-technical', name: 'Minimal Technical', nameAr: 'تقني بسيط', nameEn: 'Minimal Technical', categoryAr: 'تقني', categoryEn: 'Technical', accent: '#343a40', layout: 'minimal', atsReady: true },
 ];
 
 export const CUSTOM_SECTION_TYPES: { id: CustomSectionType; name: string }[] = [
