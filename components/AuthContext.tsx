@@ -10,8 +10,9 @@ import {
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../firebaseClient';
 
-export interface AuthUser extends User {
+export interface AuthUser {
   id: string;
+  email: string | null;
   user_metadata: {
     avatar_url: string | null;
     full_name: string | null;
@@ -31,13 +32,14 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 function toAuthUser(user: User | null): AuthUser | null {
   if (!user) return null;
-  return Object.assign(user, {
+  return {
     id: user.uid,
+    email: user.email,
     user_metadata: {
       avatar_url: user.photoURL,
       full_name: user.displayName,
     },
-  });
+  };
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -89,11 +91,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorCode = error && typeof error === 'object' && 'code' in error
+        ? String(error.code)
+        : '';
       if (
-        error?.code === 'auth/popup-blocked' ||
-        error?.code === 'auth/cancelled-popup-request' ||
-        error?.code === 'auth/operation-not-supported-in-this-environment'
+        errorCode === 'auth/popup-blocked' ||
+        errorCode === 'auth/cancelled-popup-request' ||
+        errorCode === 'auth/operation-not-supported-in-this-environment'
       ) {
         await signInWithRedirect(auth, googleProvider);
         return;

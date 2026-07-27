@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import { toast } from 'react-hot-toast';
 import { getFontFamilyOption } from '../constants';
 import { useTranslation } from '../i18n';
 import { ResumeData, TemplateOptions } from '../types';
@@ -33,11 +32,25 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
   const [scale, setScale] = useState(1);
   const [overflowStatus, setOverflowStatus] = useState<'perfect' | 'spill' | 'safe2'>('perfect');
   const [previewHeight, setPreviewHeight] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
   const { t, language } = useTranslation();
 
   const A4_WIDTH_PX = 793.7;
   const A4_HEIGHT_PX = 1122.5;
-  const fileName = `SiraMix-${data.personalInfo.name || 'Resume'}`.replace(/\s+/g, '-');
+  const fileName = `SiraMix-${data.personalInfo.name || 'Resume'}`
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .slice(0, 80);
+  const hasPersonalInfo = Object.values(data.personalInfo).some(value => value.trim());
+  const hasCustomContent = Object.values(data.customSectionsData || {})
+    .some(items => items.length > 0);
+  const isEmpty = !hasPersonalInfo
+    && !data.summary.trim()
+    && data.experience.length === 0
+    && data.education.length === 0
+    && data.skills.length === 0
+    && !hasCustomContent;
   const selectedFont = getFontFamilyOption(options.fontFamily);
   const realisticTemplateIds = new Set<string>([
     'emerald-two-column',
@@ -114,29 +127,60 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
     await waitForFonts();
     const originalWidth = input.style.width;
     const originalHeight = input.style.height;
-    input.style.width = '1050px';
-    input.style.height = '1485px';
-    const canvas = await html2canvas(input, { scale: 2, useCORS: true, logging: false });
-    input.style.width = originalWidth;
-    input.style.height = originalHeight;
-    return canvas;
+    try {
+      const { default: html2canvas } = await import('html2canvas');
+      input.style.width = '1050px';
+      input.style.height = 'auto';
+      const captureHeight = Math.max(input.scrollHeight, 1485);
+      return await html2canvas(input, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        width: 1050,
+        height: captureHeight,
+        windowWidth: 1050,
+        windowHeight: captureHeight,
+      });
+    } finally {
+      input.style.width = originalWidth;
+      input.style.height = originalHeight;
+    }
   };
 
   const handleDownloadImage = async () => {
     const canvas = await capturePreview();
     if (!canvas) return;
-    const blob = await (await fetch(canvas.toDataURL('image/jpeg'))).blob();
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        result => result ? resolve(result) : reject(new Error('JPG export failed')),
+        'image/jpeg',
+        0.94,
+      );
+    });
     triggerDownload(blob, `${fileName}.jpg`);
   };
 
   const handleDownloadPdf = async () => {
     const canvas = await capturePreview();
     if (!canvas) return;
+    const { jsPDF } = await import('jspdf');
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+    const imageHeight = (canvas.height * pdfWidth) / canvas.width;
+    let position = 0;
+    let remainingHeight = imageHeight;
+
+    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imageHeight, undefined, 'FAST');
+    remainingHeight -= pdfHeight;
+
+    while (remainingHeight > 0.5) {
+      position -= pdfHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imageHeight, undefined, 'FAST');
+      remainingHeight -= pdfHeight;
+    }
     triggerDownload(pdf.output('blob'), `${fileName}.pdf`);
   };
 
@@ -302,6 +346,21 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
   const reduceMargins = () => setOptions({ ...options, marginSize: 'compact' });
   const reduceSpacing = () => setOptions({ ...options, lineSpacing: 'compact' });
 
+  const runExport = async (exporter: () => Promise<void>) => {
+    if (isEmpty || isExporting) return;
+    setIsExporting(true);
+    setExportMenuOpen(false);
+    try {
+      await exporter();
+      toast.success(language === 'ar' ? 'تم تجهيز الملف وتنزيله.' : 'Your file is ready and downloaded.');
+    } catch (error) {
+      console.error('Resume export failed:', error);
+      toast.error(language === 'ar' ? 'تعذر تصدير الملف. حاول مرة أخرى.' : 'Export failed. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-4 lg:sticky lg:top-24">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -349,12 +408,14 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
 
           <div className="relative" ref={exportMenuRef}>
             <button
-              onClick={() => setExportMenuOpen(prev => !prev)}
-              className="flex items-center justify-center rounded-xl border border-blue-500/30 bg-blue-600 px-4 py-2 text-sm font-black text-white shadow-lg transition hover:bg-blue-700"
+              onClick={() => !isEmpty && setExportMenuOpen(prev => !prev)}
+              disabled={isEmpty || isExporting}
+              className="flex items-center justify-center rounded-xl border border-blue-500/30 bg-blue-600 px-4 py-2 text-sm font-black text-white shadow-lg transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
               aria-haspopup="true"
               aria-expanded={exportMenuOpen}
+              title={isEmpty ? (language === 'ar' ? 'أضف معلوماتك أولًا' : 'Add your details first') : undefined}
             >
-              {t('resumePreview.exportResume')}
+              {isExporting ? (language === 'ar' ? 'جارٍ التصدير...' : 'Exporting...') : t('resumePreview.exportResume')}
               <svg className="ms-2 h-5 w-5 transition-transform" style={{ transform: exportMenuOpen ? 'rotate(180deg)' : 'none' }} viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
@@ -364,13 +425,13 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
                 <div className="mb-1 border-b border-border px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
                   {t('resumePreview.exportFor')}
                 </div>
-                <button onClick={() => { handleDownloadPdf(); setExportMenuOpen(false); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
+                <button onClick={() => void runExport(handleDownloadPdf)} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
                   <span className="text-xs font-black text-red-500">PDF</span>{t('resumePreview.asPDF')}
                 </button>
-                <button onClick={() => { handleDownloadDoc(); setExportMenuOpen(false); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
+                <button onClick={() => void runExport(handleDownloadDoc)} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
                   <span className="text-xs font-black text-blue-500">DOCX</span>{t('resumePreview.asWord')}
                 </button>
-                <button onClick={() => { handleDownloadImage(); setExportMenuOpen(false); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
+                <button onClick={() => void runExport(handleDownloadImage)} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
                   <span className="text-xs font-black text-amber-500">JPG</span>{t('resumePreview.asJPG')}
                 </button>
                 {onExportBackup && (
@@ -386,12 +447,29 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
 
       <div
         ref={previewContainerRef}
-        className="flex w-full items-start justify-center overflow-auto rounded-2xl border border-border/85 bg-slate-200/50 p-3 dark:bg-slate-900/40 sm:p-5"
+        className="relative flex w-full items-start justify-center overflow-auto rounded-2xl border border-border/85 bg-slate-200/50 p-3 dark:bg-slate-900/40 sm:p-5"
         style={{
           height: scale === 1 ? 'auto' : `${Math.max(A4_HEIGHT_PX, previewHeight) * scale + 18}px`,
           minHeight: `${Math.max(A4_HEIGHT_PX, previewHeight) * scale + 18}px`,
         }}
       >
+        {isEmpty && (
+          <div className="pointer-events-none absolute inset-x-4 top-24 z-20 mx-auto max-w-sm rounded-3xl border border-[#00B5A5]/20 bg-white/95 p-6 text-center shadow-2xl backdrop-blur dark:bg-[#101b18]/95">
+            <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#00B5A5]/10 text-[#00B5A5]">
+              <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M12 3v18M3 12h18M6.2 6.2l11.6 11.6M17.8 6.2 6.2 17.8" />
+              </svg>
+            </span>
+            <h3 className="mt-4 text-lg font-black text-foreground">
+              {language === 'ar' ? 'معاينتك ستظهر هنا' : 'Your preview will appear here'}
+            </h3>
+            <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
+              {language === 'ar'
+                ? 'ابدأ بإضافة الاسم والمسمى الوظيفي، وستتحدث الصفحة تلقائيًا.'
+                : 'Add your name and job title to begin. The page updates automatically.'}
+            </p>
+          </div>
+        )}
         <div
           style={{
             transform: `scale(${scale})`,

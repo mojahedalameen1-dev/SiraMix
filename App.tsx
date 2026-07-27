@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { ARABIC_FONT_FAMILIES, DEFAULT_DUAL_RESUME_DATA, DEFAULT_TEMPLATE_OPTIONS, ENGLISH_FONT_FAMILIES } from './constants';
-import { AuthProvider, useAuth } from './components/AuthContext';
+import { AuthProvider, AuthUser, useAuth } from './components/AuthContext';
 import { Login } from './components/Login';
 import Header, { SaveStatus } from './components/Header';
 import Footer from './components/Footer';
@@ -116,7 +116,7 @@ const MainAppContent: React.FC<{
   addResume: () => void;
   deleteResume: (id: string) => void;
   renameResume: (id: string, newName: string) => void;
-  user: any;
+  user: AuthUser;
   signOut: () => Promise<void>;
   saveStatus: SaveStatus;
   onRetrySave: () => void;
@@ -137,7 +137,7 @@ const MainAppContent: React.FC<{
   saveStatus,
   onRetrySave,
 }) => {
-  const { language, setLanguage } = useLanguage();
+  const { language } = useLanguage();
   const isRtl = language === 'ar';
   const activeLanguage = language;
   const inactiveLanguage = activeLanguage === 'ar' ? 'en' : 'ar';
@@ -353,75 +353,48 @@ const MainAppContent: React.FC<{
         onCopyStructure={handleCopyStructureFromOtherLanguage}
       />
 
-      <main className="container mx-auto px-3 sm:px-4 py-4 lg:py-6 flex-grow space-y-4">
-        <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card/70 px-4 py-3 shadow-sm backdrop-blur">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#00B5A5] shadow-[0_0_0_5px_rgba(0,181,165,0.12)]" />
-            <div className="min-w-0">
-              <p className="text-sm font-black text-foreground">
-                {activeLanguage === 'ar' ? 'تعمل الآن على النسخة العربية' : 'You are editing the English version'}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {isRtl ? 'نسخة مستقلة، ليست ترجمة تلقائية. غيّر النسخة من الشريط العلوي.' : 'Independent version, not auto-translated. Switch versions from the top bar.'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
-            <span className="rounded-full bg-secondary px-3 py-1">
-              {activeLanguage === 'ar' ? 'العربية' : 'English'} {currentCompletion}%
-            </span>
-            <span className="hidden rounded-full bg-secondary px-3 py-1 sm:inline-flex">
-              {inactiveLanguage === 'ar' ? 'العربية' : 'English'} {otherCompletion}%
-            </span>
-          </div>
-        </section>
-
-        {false && (
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-full bg-[#00B5A5]/10 px-3 py-1 text-xs font-bold text-[#00796f] dark:text-[#65fff1]">
-                  {activeLanguage === 'ar' ? 'تعدل الآن النسخة العربية' : 'You are editing the English version'}
+      <main className="container mx-auto flex-grow space-y-4 px-3 py-4 sm:px-4 lg:py-6">
+        {currentCompletion === 0 && (
+          <section className="relative overflow-hidden rounded-3xl border border-[#00B5A5]/20 bg-gradient-to-l from-[#00B5A5]/15 via-card to-card p-5 shadow-sm sm:p-6">
+            <div className="absolute -end-12 -top-16 h-40 w-40 rounded-full bg-[#00B5A5]/15 blur-2xl" />
+            <div className="relative flex flex-col justify-between gap-5 md:flex-row md:items-center">
+              <div>
+                <span className="inline-flex rounded-full bg-[#00B5A5] px-3 py-1 text-[10px] font-black text-white">
+                  {isRtl ? 'خطوتك الأولى' : 'FIRST STEP'}
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  {isRtl ? 'هذه ليست ترجمة تلقائية؛ اكتب محتوى مناسبًا لكل سوق.' : 'This is not an auto-translation. Write content for each market.'}
-                </span>
+                <h2 className="mt-3 text-2xl font-black text-foreground">
+                  {isRtl ? 'ابدأ بسيرة فارغة وآمنة' : 'Start with a clean, private resume'}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm font-medium leading-7 text-muted-foreground">
+                  {isRtl
+                    ? 'أضف معلوماتك الأساسية يدويًا، أو استورد سيرتك الحالية. لن نضع أي بيانات تجريبية داخل حسابك.'
+                    : 'Add your details manually or import an existing resume. We never place demo personal data in your account.'}
+                </p>
               </div>
-              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                <span>{activeLanguage === 'ar' ? 'اكتمال العربية' : 'English completion'}: <strong className="text-foreground">{currentCompletion}%</strong></span>
-                <span>{inactiveLanguage === 'ar' ? 'اكتمال العربية' : 'English completion'}: <strong className="text-foreground">{otherCompletion}%</strong></span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-xl border border-border bg-background p-1">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <button
                   type="button"
-                  onClick={() => setLanguage('ar')}
-                  className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${activeLanguage === 'ar' ? 'bg-[#00B5A5] text-white' : 'text-muted-foreground hover:text-foreground'}`}
+                  onClick={() => openEditorSection('personalInfo')}
+                  className="rounded-xl bg-[#12231e] px-5 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[#00B5A5]"
                 >
-                  العربية
+                  {isRtl ? 'إضافة معلوماتي' : 'Add my details'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setLanguage('en')}
-                  className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${activeLanguage === 'en' ? 'bg-[#00B5A5] text-white' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                  English
-                </button>
+                <label className={`inline-flex cursor-pointer items-center justify-center rounded-xl border border-border bg-background px-5 py-3 text-sm font-black transition hover:bg-accent ${isImportingResume ? 'pointer-events-none opacity-60' : ''}`}>
+                  {isImportingResume ? (isRtl ? 'جارٍ الاستيراد...' : 'Importing...') : (isRtl ? 'استيراد سيرة' : 'Import resume')}
+                  <input
+                    type="file"
+                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={handleImportResumeFile}
+                    className="hidden"
+                    disabled={isImportingResume}
+                  />
+                </label>
               </div>
-              <button
-                type="button"
-                onClick={handleCopyStructureFromOtherLanguage}
-                className="px-3 py-2 text-xs font-bold rounded-xl border border-border bg-background hover:bg-accent transition-colors"
-              >
-                {isRtl ? 'نسخ هيكل الأقسام فقط' : 'Copy section structure'}
-              </button>
             </div>
-          </div>
+          </section>
         )}
 
-        <div className="lg:hidden bg-card border border-border rounded-2xl p-1.5 flex gap-1">
+        <div className="flex gap-1 rounded-2xl border border-border bg-card p-1.5 lg:hidden">
           <button
             type="button"
             onClick={() => setMobileView('form')}
@@ -485,7 +458,7 @@ const MainAppContent: React.FC<{
 
             {activeTab === 'content' && (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                {currentCompletion > 0 && <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h4 className="text-sm font-bold text-foreground">
@@ -502,7 +475,7 @@ const MainAppContent: React.FC<{
                       <input type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleImportResumeFile} className="hidden" disabled={isImportingResume} />
                     </label>
                   </div>
-                </div>
+                </div>}
                 {importBanner && (
                   <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-700 dark:text-emerald-300">
                     {importBanner}
@@ -625,7 +598,9 @@ const AppRoot: React.FC = () => {
       } catch (err) {
         console.error('Error fetching/migrating cloud resume data:', err);
         toast.error(isRtl ? 'تعذر جلب بيانات الحساب. تم فتح مساحة مؤقتة.' : 'Could not synchronize your account data. A temporary workspace was opened.');
-        setResumes([createNewResumeObj([])]);
+        const fallbackResume = createNewResumeObj([]);
+        setResumes([fallbackResume]);
+        setActiveResumeId(fallbackResume.id);
         profileHydratedRef.current = false;
       } finally {
         setDbLoading(false);

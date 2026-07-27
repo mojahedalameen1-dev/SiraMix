@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebaseClient';
 import { Resume } from '../types';
+import { sanitizeLegacySeedData } from './seedDataSanitizer';
 
 export interface UserProfile {
   id: string;
@@ -19,6 +20,8 @@ export interface UserProfile {
 }
 
 const updateTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+const pendingUpdates: Record<string, Partial<Resume>> = {};
+const pendingWaiters: Record<string, Array<{ resolve: () => void; reject: (error: unknown) => void }>> = {};
 
 const userRef = (userId: string) => doc(db, 'users', userId);
 const profileRef = (userId: string) => doc(db, 'users', userId, 'settings', 'profile');
@@ -56,19 +59,35 @@ export const resumeService = {
     // Sorting after retrieval avoids requiring an index during first deployment.
     const snapshot = await getDocs(collection(db, 'users', userId, 'resumes'));
 
-    return snapshot.docs
+    const cleanupBatch = writeBatch(db);
+    let hasCleanup = false;
+    const resumes = snapshot.docs
       .map(item => {
         const data = item.data();
+        const sanitized = sanitizeLegacySeedData(data.data);
+        if (sanitized.changed) {
+          cleanupBatch.set(resumeRef(userId, item.id), {
+            data: sanitized.data,
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+          hasCleanup = true;
+        }
         return {
           id: item.id,
           name: data.name,
-          data: data.data,
+          data: sanitized.data,
           options: data.options,
           createdAt: data.createdAt?.toMillis?.() || 0,
         };
       })
       .sort((a, b) => a.createdAt - b.createdAt)
       .map(({ createdAt: _createdAt, ...resume }) => resume as Resume);
+
+    if (hasCleanup) {
+      await cleanupBatch.commit();
+    }
+
+    return resumes;
   },
 
   async createResume(userId: string, resume: Resume): Promise<Resume> {
@@ -100,14 +119,27 @@ export const resumeService = {
     updates: Partial<Resume>,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
+      pendingUpdates[resumeId] = {
+        ...pendingUpdates[resumeId],
+        ...updates,
+      };
+      pendingWaiters[resumeId] = [
+        ...(pendingWaiters[resumeId] || []),
+        { resolve, reject },
+      ];
+
       if (updateTimers[resumeId]) clearTimeout(updateTimers[resumeId]);
       updateTimers[resumeId] = setTimeout(async () => {
         delete updateTimers[resumeId];
+        const mergedUpdates = pendingUpdates[resumeId] || {};
+        const waiters = pendingWaiters[resumeId] || [];
+        delete pendingUpdates[resumeId];
+        delete pendingWaiters[resumeId];
         try {
-          await this.updateResumeImmediate(userId, resumeId, updates);
-          resolve();
+          await this.updateResumeImmediate(userId, resumeId, mergedUpdates);
+          waiters.forEach(waiter => waiter.resolve());
         } catch (error) {
-          reject(error);
+          waiters.forEach(waiter => waiter.reject(error));
         }
       }, 400);
     });
@@ -118,6 +150,10 @@ export const resumeService = {
       clearTimeout(updateTimers[resumeId]);
       delete updateTimers[resumeId];
     }
+    delete pendingUpdates[resumeId];
+    const waiters = pendingWaiters[resumeId] || [];
+    delete pendingWaiters[resumeId];
+    waiters.forEach(waiter => waiter.resolve());
     await deleteDoc(resumeRef(userId, resumeId));
   },
 
@@ -135,16 +171,23 @@ export const resumeService = {
       if (!Array.isArray(parsedResumes) || parsedResumes.length === 0) return null;
 
       const processedResumes = parsedResumes.map((resume: any) => {
+        let normalizedResume: Resume;
         if (resume.data?.personalInfo && !resume.data.en) {
-          return {
+          normalizedResume = {
             ...resume,
             data: {
               en: { ...resume.data },
               ar: structuredClone(resume.data),
             },
           };
+        } else {
+          normalizedResume = resume as Resume;
         }
-        return resume as Resume;
+
+        return {
+          ...normalizedResume,
+          data: sanitizeLegacySeedData(normalizedResume.data).data,
+        };
       });
 
       const savedActiveResumeId = localStorage.getItem('activeResumeId');

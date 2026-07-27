@@ -49,14 +49,22 @@
   --ring: 212.7 26.8% 83.9%;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
+  margin: 0;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
 }
 
 body:has(.landing-page) {
-  max-width: 100vw;
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 
 body.dragging-cursor,

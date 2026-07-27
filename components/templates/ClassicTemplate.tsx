@@ -1,6 +1,7 @@
 ﻿import React, { forwardRef } from 'react';
 import { ResumeData, TemplateOptions } from '../../types';
 import { useTranslation } from '../../i18n';
+import { getSafeExternalUrl } from '../../utils/url';
 
 interface TemplateProps {
     data: ResumeData;
@@ -11,6 +12,7 @@ interface TemplateProps {
 const ClassicTemplate = forwardRef<HTMLDivElement, TemplateProps>(({ data, options, language }, ref) => {
     const { t } = useTranslation();
     const { personalInfo, summary, experience, education, skills, customSectionsData, sectionOrder, sectionTitles } = data;
+    const websiteUrl = getSafeExternalUrl(personalInfo.website);
     const accentColorStyle = { color: options.accentColor };
     const accentBorderStyle = { borderColor: options.accentColor };
     const isRtl = language === 'ar';
@@ -203,10 +205,10 @@ const ClassicTemplate = forwardRef<HTMLDivElement, TemplateProps>(({ data, optio
                     <span>{personalInfo.phone}</span>
                      <span className="hidden sm:inline">&bull;</span>
                     <span>{personalInfo.location}</span>
-                    {personalInfo.website && (
+                    {websiteUrl && (
                         <>
                             <span className="hidden sm:inline">&bull;</span>
-                            <a href={`https://${personalInfo.website}`} target="_blank" rel="noopener noreferrer" className="hover:underline" style={accentColorStyle}>{personalInfo.website}</a>
+                            <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="hover:underline" style={accentColorStyle}>{personalInfo.website}</a>
                         </>
                     )}
                 </div>

@@ -132,7 +132,7 @@ const translations: TranslationTree = {
     sectionDeleted: { en: 'Section deleted.', ar: 'تم حذف القسم.' },
   },
   footer: {
-    credit: { en: 'Developed by Mojahed alameen', ar: 'تم تنفيذه من قبل المهندس مجاهد الأمين' },
+    credit: { en: 'Your data stays private in your account.', ar: 'بياناتك خاصة ومحفوظة داخل حسابك.' },
   },
 };
 

@@ -6,6 +6,7 @@ import { PlusIcon } from './icons/PlusIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { useLanguage, useTranslation } from '../i18n';
 import { Logo } from './Logo';
+import { AuthUser } from './AuthContext';
 
 export type SaveStatus = 'saved' | 'saving' | 'error';
 
@@ -19,7 +20,7 @@ interface HeaderProps {
   deleteResume: (id: string) => void;
   renameResume: (id: string, newName: string) => void;
   currentResumeName: string;
-  user: any;
+  user: AuthUser;
   signOut: () => Promise<void>;
   saveStatus: SaveStatus;
   onRetrySave: () => void;

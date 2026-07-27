@@ -73,7 +73,7 @@ export const Login: React.FC<LoginProps> = ({ theme, setTheme }) => {
   return (
     <main
       dir={isRtl ? 'rtl' : 'ltr'}
-      className="landing-page min-h-screen w-[100vw] max-w-[100vw] overflow-x-clip bg-[#f4f1e9] font-thmanyah text-[#12231e] selection:bg-[#ff6b4a] selection:text-white dark:bg-[#0d1714] dark:text-[#f7f4ec]"
+      className="landing-page min-h-screen w-full max-w-full overflow-x-hidden bg-[#f4f1e9] font-thmanyah text-[#12231e] selection:bg-[#ff6b4a] selection:text-white dark:bg-[#0d1714] dark:text-[#f7f4ec]"
     >
       <header className="relative z-50">
         <div className="mx-auto flex max-w-[1180px] items-center justify-between px-5 py-5 lg:px-8">
@@ -124,7 +124,7 @@ export const Login: React.FC<LoginProps> = ({ theme, setTheme }) => {
               {copy.eyebrow}
             </div>
 
-            <h1 className="max-w-2xl text-[3rem] font-black leading-[1.02] tracking-[-0.04em] sm:text-7xl sm:leading-[0.98] lg:text-[5.2rem]">
+            <h1 className="max-w-full break-words text-[2.65rem] font-black leading-[1.08] tracking-[-0.035em] [overflow-wrap:anywhere] sm:max-w-2xl sm:text-7xl sm:leading-[0.98] lg:text-[5.2rem]">
               <span className="block">{copy.titleStart}</span>
               <span className="block text-[#ff6b4a]">{copy.titleAccent}</span>
             </h1>
@@ -156,7 +156,7 @@ export const Login: React.FC<LoginProps> = ({ theme, setTheme }) => {
             )}
           </div>
 
-          <div className="relative mx-auto min-w-0 w-full max-w-[580px] animate-rise-in [animation-delay:120ms]">
+          <div className="relative mx-auto w-full min-w-0 max-w-full animate-rise-in [animation-delay:120ms] sm:max-w-[580px]">
             <div className="absolute -end-4 -top-5 z-20 rotate-3 rounded-2xl bg-[#ff6b4a] px-5 py-3 text-sm font-black text-white shadow-xl sm:-end-8">
               ATS <span className="text-xl">94</span>
               <span className="opacity-70">/100</span>

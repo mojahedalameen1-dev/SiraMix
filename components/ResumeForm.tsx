@@ -62,16 +62,20 @@ const customSectionConfig: Record<CustomSectionType, { layout: FieldLayout; newI
   },
 };
 
-const FormInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = ({ className = '', ...props }) => (
+const FormInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = ({ className = '', placeholder, ...props }) => (
   <input
     {...props}
+    placeholder={placeholder}
+    aria-label={props['aria-label'] || (typeof placeholder === 'string' ? placeholder : undefined)}
     className={`w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-[#00B5A5] focus:ring-2 focus:ring-[#00B5A5]/20 ${className}`}
   />
 );
 
-const FormTextarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = ({ className = '', ...props }) => (
+const FormTextarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = ({ className = '', placeholder, ...props }) => (
   <textarea
     {...props}
+    placeholder={placeholder}
+    aria-label={props['aria-label'] || (typeof placeholder === 'string' ? placeholder : undefined)}
     className={`w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-[#00B5A5] focus:ring-2 focus:ring-[#00B5A5]/20 ${className}`}
   />
 );
@@ -151,14 +155,18 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ resumeData, setResumeData, open
     document.body.classList.remove('dragging-cursor');
   };
 
+  const addSkill = () => {
+    const trimmedSkill = skillInput.trim().replace(/,$/, '');
+    if (trimmedSkill && !skills.some(skill => skill.name.toLowerCase() === trimmedSkill.toLowerCase())) {
+      setResumeData(prev => ({ ...prev, skills: [...prev.skills, { id: crypto.randomUUID(), name: trimmedSkill }] }));
+    }
+    setSkillInput('');
+  };
+
   const handleAddSkill = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if ((e.key === 'Enter' || e.key === ',') && skillInput.trim()) {
       e.preventDefault();
-      const trimmedSkill = skillInput.trim().replace(/,$/, '');
-      if (trimmedSkill && !skills.some(skill => skill.name.toLowerCase() === trimmedSkill.toLowerCase())) {
-        setResumeData(prev => ({ ...prev, skills: [...prev.skills, { id: crypto.randomUUID(), name: trimmedSkill }] }));
-      }
-      setSkillInput('');
+      addSkill();
     }
   };
 
@@ -358,7 +366,17 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ resumeData, setResumeData, open
                     </div>
                   ))}
                 </div>
-                <FormInput type="text" placeholder={t('form.addSkillPlaceholder')} value={skillInput} onChange={(e) => setSkillInput(e.target.value)} onKeyDown={handleAddSkill} />
+                <div className="flex gap-2">
+                  <FormInput type="text" placeholder={t('form.addSkillPlaceholder')} value={skillInput} onChange={(e) => setSkillInput(e.target.value)} onKeyDown={handleAddSkill} />
+                  <button
+                    type="button"
+                    onClick={addSkill}
+                    disabled={!skillInput.trim()}
+                    className="shrink-0 rounded-xl bg-[#00B5A5] px-4 text-sm font-black text-white transition hover:bg-[#009f92] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {t('section.addNew')}
+                  </button>
+                </div>
                 <p className="mt-2 text-xs text-muted-foreground">{t('form.addSkillInstruction')}</p>
               </Section>
             );

@@ -147,9 +147,10 @@ const Section = <T extends Item,>({
         )}
       </div>
       {headerAddon && <div className="ms-auto ps-2">{headerAddon}</div>}
-      <div className="flex items-center ps-2 space-x-1 rtl:space-x-reverse opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
+      <div className="flex items-center space-x-1 ps-2 opacity-100 transition-opacity duration-200 rtl:space-x-reverse sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
           {isEditable && onRename && (
               <button
+                  type="button"
                   onClick={startEditing}
                   className="p-1.5 rounded-full hover:bg-accent text-muted-foreground hover:text-accent-foreground"
                   aria-label={t('section.renameSection')}
@@ -160,6 +161,7 @@ const Section = <T extends Item,>({
           )}
           {isEditable && onDelete && (
               <button
+                  type="button"
                   onClick={(e) => { e.stopPropagation(); onDelete(); }}
                   className="p-1.5 rounded-full text-red-500 hover:text-red-700 hover:bg-destructive/10"
                   aria-label={t('section.deleteSection')}
@@ -210,7 +212,13 @@ const Section = <T extends Item,>({
                 {items && renderItem && items.map((item, index) => (
                   <div key={item.id} className="p-3 bg-secondary/50 rounded-md border border-border/70 relative group/item">
                     <div className="absolute top-1 end-1">
-                        <button onClick={() => removeItem(item.id)} className="text-destructive opacity-0 group-hover/item:opacity-100 focus:opacity-100 p-1 rounded-full hover:bg-destructive/10 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.id)}
+                          aria-label={language === 'ar' ? 'حذف العنصر' : 'Delete item'}
+                          title={language === 'ar' ? 'حذف العنصر' : 'Delete item'}
+                          className="rounded-full p-1 text-destructive opacity-100 transition-opacity hover:bg-destructive/10 sm:opacity-0 sm:group-hover/item:opacity-100 sm:focus:opacity-100"
+                        >
                             <TrashIcon />
                         </button>
                     </div>
@@ -225,7 +233,7 @@ const Section = <T extends Item,>({
                 )}
 
                 {setItems && newItem && (
-                  <button onClick={addItem} className="w-full flex items-center justify-center p-2 mt-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-500/10 rounded-md hover:bg-blue-500/20 transition-colors">
+                  <button type="button" onClick={addItem} className="mt-2 flex w-full items-center justify-center rounded-md bg-blue-500/10 p-2 text-sm text-blue-600 transition-colors hover:bg-blue-500/20 dark:text-blue-400">
                     <PlusIcon /> <span className="mx-2">{t('section.addNew')}</span>
                   </button>
                 )}
