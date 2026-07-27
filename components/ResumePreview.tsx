@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { getFontFamilyOption } from '../constants';
 import { useTranslation } from '../i18n';
+import { buildDocxHtml } from '../services/docxTemplate';
 import { ResumeData, TemplateOptions } from '../types';
 import ClassicTemplate from './templates/ClassicTemplate';
 import ModernTemplate from './templates/ModernTemplate';
@@ -190,131 +191,8 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
     wide: 1250,
   };
 
-  const lineHeightBySpacing = {
-    compact: 1.25,
-    normal: 1.45,
-    spacious: 1.7,
-  };
-
-  const getExportHtml = () => {
-    const input = previewRef.current;
-    if (!input) return null;
-
-    const clonedNode = input.cloneNode(true) as HTMLElement;
-    const isRtl = language === 'ar';
-    const lineHeight = lineHeightBySpacing[options.lineSpacing || 'normal'];
-    const textAlign = isRtl ? 'right' : 'left';
-    const fontSize = options.fontSize || '10pt';
-
-    const originalElements = [input, ...Array.from(input.querySelectorAll('*'))] as HTMLElement[];
-    const clonedElements = [clonedNode, ...Array.from(clonedNode.querySelectorAll('*'))] as HTMLElement[];
-    originalElements.forEach((originalElement, index) => {
-      const clonedElement = clonedElements[index];
-      if (!clonedElement) return;
-      const computed = window.getComputedStyle(originalElement);
-      const copiedProperties = [
-        'color',
-        'backgroundColor',
-        'fontFamily',
-        'fontSize',
-        'fontWeight',
-        'lineHeight',
-        'textAlign',
-        'direction',
-        'marginTop',
-        'marginRight',
-        'marginBottom',
-        'marginLeft',
-        'paddingTop',
-        'paddingRight',
-        'paddingBottom',
-        'paddingLeft',
-        'borderBottomColor',
-        'borderBottomStyle',
-        'borderBottomWidth',
-      ] as const;
-      copiedProperties.forEach(property => {
-        clonedElement.style[property] = computed[property];
-      });
-    });
-
-    clonedNode.querySelectorAll('[class]').forEach(element => {
-      (element as HTMLElement).removeAttribute('class');
-    });
-
-    clonedNode.querySelectorAll('div[data-bullet]').forEach(item => {
-      const p = document.createElement('p');
-      p.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
-      p.style.margin = '0 0 4pt 0';
-      p.style.textAlign = textAlign;
-      p.style.lineHeight = String(lineHeight);
-      p.style.paddingInlineStart = '14pt';
-
-      const bullet = document.createElement('span');
-      bullet.style.fontFamily = selectedFont.cssFamily;
-      bullet.style.paddingInlineEnd = '5pt';
-      bullet.textContent = '•';
-
-      const text = (item.textContent || '').replace(/^•\s*/, '').trim();
-      p.appendChild(bullet);
-      p.appendChild(document.createTextNode(text));
-      item.parentNode?.replaceChild(p, item);
-    });
-
-    const styles = `
-      <style>
-        html, body {
-          margin: 0;
-          padding: 0;
-          background: #ffffff;
-          color: #000000;
-          direction: ${isRtl ? 'rtl' : 'ltr'};
-          unicode-bidi: embed;
-          font-family: ${selectedFont.cssFamily};
-          font-size: ${fontSize};
-          line-height: ${lineHeight};
-        }
-        body, div, section, header, main, aside, p, span, a, h1, h2, h3, h4, li {
-          font-family: ${selectedFont.cssFamily};
-          box-sizing: border-box;
-        }
-        #resume-preview {
-          width: 210mm;
-          min-height: 297mm;
-          background: #ffffff;
-          color: #000000;
-          direction: ${isRtl ? 'rtl' : 'ltr'};
-          unicode-bidi: embed;
-          text-align: ${textAlign};
-        }
-        header { text-align: center; margin-bottom: ${options.lineSpacing === 'compact' ? '12pt' : options.lineSpacing === 'spacious' ? '24pt' : '18pt'}; }
-        main, aside, section { direction: ${isRtl ? 'rtl' : 'ltr'}; unicode-bidi: embed; }
-        h1 { margin: 0; font-size: 24pt; font-weight: 800; color: ${options.accentColor}; text-align: center; }
-        h2 { margin: 4pt 0 8pt 0; font-size: 14pt; font-weight: 500; text-align: center; color: #111827; }
-        h3, .section-title {
-          margin: 0 0 8pt 0;
-          padding-bottom: 4pt;
-          border-bottom: 1.5pt solid ${options.accentColor};
-          font-size: 11pt;
-          font-weight: 700;
-          text-transform: uppercase;
-          color: #000000;
-          text-align: ${textAlign};
-        }
-        p { margin: 0 0 5pt 0; line-height: ${lineHeight}; text-align: ${textAlign}; }
-        a { color: ${options.accentColor}; text-decoration: none; }
-        .grid, .flex { display: block; }
-        [dir="rtl"] { direction: rtl; unicode-bidi: embed; text-align: right; }
-        [dir="ltr"] { direction: ltr; unicode-bidi: embed; text-align: left; }
-      </style>
-    `;
-
-    return `<!DOCTYPE html><html lang="${language}" dir="${isRtl ? 'rtl' : 'ltr'}"><head><meta charset="utf-8"><title>SiraMix Resume</title>${styles}</head><body>${clonedNode.outerHTML}</body></html>`;
-  };
-
   const handleDownloadDoc = async () => {
-    const sourceHTML = getExportHtml();
-    if (!sourceHTML) return;
+    const sourceHTML = buildDocxHtml(data, options, language);
 
     await waitForFonts();
     const margin = marginBySize[options.marginSize || 'normal'];
