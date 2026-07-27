@@ -8,10 +8,14 @@ Prerequisites: Node.js 20+
 
 1. Install dependencies:
    `npm install`
-2. Create `.env.local` with Supabase public environment variables if needed.
-3. Run the app:
+2. Copy `.env.example` to `.env.local` and add the Firebase web app values.
+3. In Firebase Authentication, enable the Google provider and add the deployed
+   site domain under **Authorized domains**.
+4. Create a Cloud Firestore database, then deploy its security rules with
+   `npx firebase-tools deploy --only firestore:rules`.
+5. Run the app:
    `npm run dev`
-4. Check production build:
+6. Check production build:
    `npm run build`
 
 ## Quality Checks

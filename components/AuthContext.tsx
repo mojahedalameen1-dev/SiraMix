@@ -1,80 +1,113 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { isSupabaseConfigured, supabase } from '../supabaseClient';
-import { User, Session } from '@supabase/supabase-js';
+import {
+  GoogleAuthProvider,
+  User,
+  getRedirectResult,
+  onAuthStateChanged,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut as firebaseSignOut,
+} from 'firebase/auth';
+import { auth, isFirebaseConfigured } from '../firebaseClient';
+
+export interface AuthUser extends User {
+  id: string;
+  user_metadata: {
+    avatar_url: string | null;
+    full_name: string | null;
+  };
+}
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+function toAuthUser(user: User | null): AuthUser | null {
+  if (!user) return null;
+  return Object.assign(user, {
+    id: user.uid,
+    user_metadata: {
+      avatar_url: user.photoURL,
+      full_name: user.displayName,
+    },
+  });
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!isFirebaseConfigured) {
       setLoading(false);
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      setSession(initialSession);
-      setUser(initialSession?.user ?? null);
-      setLoading(false);
-    }).catch((error) => {
-      console.error('Error loading auth session:', error);
-      setLoading(false);
+    let active = true;
+    const stopLoadingTimer = window.setTimeout(() => {
+      if (active) setLoading(false);
+    }, 8000);
+
+    getRedirectResult(auth).catch(error => {
+      console.error('Firebase redirect sign-in failed:', error);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setLoading(false);
-    });
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      currentUser => {
+        if (!active) return;
+        window.clearTimeout(stopLoadingTimer);
+        setUser(toAuthUser(currentUser));
+        setLoading(false);
+      },
+      error => {
+        console.error('Firebase auth initialization failed:', error);
+        if (!active) return;
+        window.clearTimeout(stopLoadingTimer);
+        setLoading(false);
+      },
+    );
 
     return () => {
-      subscription.unsubscribe();
+      active = false;
+      window.clearTimeout(stopLoadingTimer);
+      unsubscribe();
     };
   }, []);
 
   const signInWithGoogle = async () => {
-    try {
-      if (!isSupabaseConfigured) {
-        throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to the environment.');
-      }
+    if (!isFirebaseConfigured) {
+      throw new Error('Firebase is not configured. Add the VITE_FIREBASE_* variables.');
+    }
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        },
-      });
-      if (error) throw error;
-      if (!data?.url) return;
-    } catch (err: any) {
-      console.error('Error signing in with Google:', err.message || err);
-      throw err;
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error: any) {
+      if (
+        error?.code === 'auth/popup-blocked' ||
+        error?.code === 'auth/cancelled-popup-request' ||
+        error?.code === 'auth/operation-not-supported-in-this-environment'
+      ) {
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
+      throw error;
     }
   };
 
   const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    } catch (err: any) {
-      console.error('Error signing out:', err.message || err);
-      throw err;
-    }
+    await firebaseSignOut(auth);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -82,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
