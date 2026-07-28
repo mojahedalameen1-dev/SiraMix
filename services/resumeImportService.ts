@@ -1,7 +1,7 @@
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
-import { CustomSectionItem, ResumeData } from '../types';
+import { ResumeData } from '../types';
 
-type SectionKey = 'summary' | 'experience' | 'education' | 'skills' | 'languages';
+type SectionKey = 'summary' | 'experience' | 'education' | 'skills' | 'languages' | 'tools';
 type ParsedSections = Partial<Record<SectionKey, string>>;
 
 interface ParsedResumeText {
@@ -21,7 +21,7 @@ interface ParsedResumePayload {
   text?: string;
 }
 
-const MAIN_SECTION_ORDER: SectionKey[] = ['summary', 'experience', 'education', 'skills', 'languages'];
+const MAIN_SECTION_ORDER: SectionKey[] = ['summary', 'experience', 'education', 'skills', 'languages', 'tools'];
 
 const SECTION_ALIASES: Record<SectionKey, string[]> = {
   summary: ['الملخص', 'نبذة', 'نبذة مختصرة', 'النبذة', 'summary', 'profile', 'about', 'professional summary'],
@@ -29,6 +29,7 @@ const SECTION_ALIASES: Record<SectionKey, string[]> = {
   education: ['التعليم', 'المؤهلات', 'المؤهلات العلمية', 'education', 'academic background', 'qualifications'],
   skills: ['المهارات', 'المهارات التقنية', 'skills', 'technical skills', 'core skills', 'skills & competencies'],
   languages: ['اللغات', 'languages', 'language proficiency'],
+  tools: ['الأدوات', 'التقنيات', 'الأدوات والتقنيات', 'tools', 'technologies', 'tools & technologies'],
 };
 
 const EMAIL_REGEX = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
@@ -121,15 +122,31 @@ function extractSectionsFromLines(lines: string[]): ParsedSections {
 }
 
 function extractHeaderFields(lines: string[]): Pick<ParsedResumeText, 'name' | 'title' | 'email' | 'phone' | 'location' | 'website'> {
-  const headerWindow = lines.slice(0, Math.min(lines.length, 12));
-  const email = headerWindow.find(line => EMAIL_REGEX.test(line)) || lines.find(line => EMAIL_REGEX.test(line));
-  const phone = headerWindow.find(line => PHONE_REGEX.test(line)) || lines.find(line => PHONE_REGEX.test(line));
-  const website = headerWindow.find(line => URL_REGEX.test(line)) || lines.find(line => URL_REGEX.test(line));
+  const firstSectionIndex = lines.findIndex(isSectionLine);
+  const headerEnd = firstSectionIndex > 0 ? Math.min(firstSectionIndex, 18) : Math.min(lines.length, 18);
+  const headerWindow = lines.slice(0, headerEnd);
+  const headerText = headerWindow.join('\n');
+  const email = headerText.match(EMAIL_REGEX)?.[0];
+  const phoneLabelMatch = headerText.match(/(?:phone|mobile|tel|الهاتف|الجوال)\s*:?\s*(\+?\d[\d\s().-]{7,}\d)/i);
+  const phone = phoneLabelMatch?.[1]?.trim() || headerWindow.find(line => PHONE_REGEX.test(line))?.match(PHONE_REGEX)?.[0];
+  const website = headerWindow
+    .filter(line => !EMAIL_REGEX.test(line))
+    .map(line => line.match(URL_REGEX)?.[0])
+    .find(Boolean);
+  const locationMatch = headerText.match(/(?:location|address|الموقع|العنوان)\s*:?\s*([^|\n]+)/i);
+  const labeledField = /^(?:e-?mail|phone|mobile|tel|location|address|date of birth|dob|nationality|visa status|البريد|الهاتف|الجوال|الموقع|العنوان|تاريخ الميلاد|الجنسية|حالة التأشيرة)\s*:/i;
 
-  const candidateLines = headerWindow.filter(line => !EMAIL_REGEX.test(line) && !PHONE_REGEX.test(line) && !URL_REGEX.test(line) && !isSectionLine(line));
+  const candidateLines = headerWindow.filter(line =>
+    !EMAIL_REGEX.test(line) &&
+    !PHONE_REGEX.test(line) &&
+    !URL_REGEX.test(line) &&
+    !DATE_LINE_REGEX.test(line) &&
+    !labeledField.test(line) &&
+    !isSectionLine(line),
+  );
   const name = candidateLines.find(isLikelyName);
   const title = candidateLines.find(line => line !== name && !isLikelyLocation(line) && line.length <= 100);
-  const location = candidateLines.find(isLikelyLocation) || lines.find(isLikelyLocation);
+  const location = locationMatch?.[1]?.trim() || candidateLines.find(isLikelyLocation) || lines.find(isLikelyLocation);
 
   return { name, title, email, phone, location, website };
 }
@@ -163,10 +180,19 @@ function parseEntryBlock(block: string): { first: string; second: string; startD
   const { startDate, endDate } = parseDateRange(block);
   const descriptionStartIndex = subheading ? 2 : 1;
   const description = lines.slice(descriptionStartIndex).join('\n').trim();
+  const cleanHeading = heading
+    .replace(/(?:[A-Z][a-z]{2,8}\s+)?(?:19|20)\d{2}\s*[-–—]\s*(?:(?:[A-Z][a-z]{2,8}\s+)?(?:19|20)\d{2}|present|current|now)/i, '')
+    .replace(/^[\s|:,-]+|[\s|:,-]+$/g, '')
+    .trim();
+  const subheadingParts = subheading
+    .split('|')
+    .map(part => part.trim())
+    .filter(Boolean);
+  const cleanSubheading = subheadingParts[subheadingParts.length - 1] || '';
 
   return {
-    first: heading.replace(new RegExp(DATE_LINE_REGEX.source, 'i'), '').trim(),
-    second: subheading,
+    first: cleanHeading || heading.replace(new RegExp(DATE_LINE_REGEX.source, 'i'), '').trim(),
+    second: cleanSubheading,
     startDate,
     endDate,
     description,
@@ -174,6 +200,21 @@ function parseEntryBlock(block: string): { first: string; second: string; startD
 }
 
 function splitEntries(text: string): string[] {
+  const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+  const entryStarts = lines
+    .map((line, index) => ({ line, index }))
+    .filter(({ line }) =>
+      /(?:[A-Z][a-z]{2,8}\s+)?(?:19|20)\d{2}\s*[-–—]\s*(?:(?:[A-Z][a-z]{2,8}\s+)?(?:19|20)\d{2}|present|current|now)/i.test(line),
+    )
+    .map(({ index }) => index);
+
+  if (entryStarts.length >= 2) {
+    return entryStarts.map((start, index) => {
+      const end = entryStarts[index + 1] ?? lines.length;
+      return lines.slice(start, end).join('\n');
+    });
+  }
+
   return text
     .split(/\n{2,}/)
     .map(block => block.trim())
@@ -230,9 +271,48 @@ function sectionExists(data: ResumeData, key: string): boolean {
   return key === 'personalInfo' || data.sectionOrder.includes(key);
 }
 
+function upsertImportedListSection(
+  data: ResumeData,
+  sectionType: 'default' | 'languages',
+  title: string,
+  values: string[],
+): void {
+  if (!values.length) return;
+
+  let sectionKey = data.sectionOrder.find(key =>
+    key.startsWith('custom_') &&
+    (sectionType === 'languages'
+      ? data.sectionTypes[key] === 'languages'
+      : normalizeLine(data.sectionTitles[key] || '') === normalizeLine(title)),
+  );
+
+  if (!sectionKey) {
+    sectionKey = `custom_${crypto.randomUUID()}`;
+    data.sectionOrder.push(sectionKey);
+  }
+
+  data.sectionTypes[sectionKey] = sectionType;
+  data.sectionTitles[sectionKey] = title;
+  data.customSectionsData[sectionKey] = values.slice(0, 30).map(value => {
+    const [primaryText, secondaryText = ''] = value.split(/\s+[-–—:|]\s+/).map(part => part.trim());
+    return {
+      id: crypto.randomUUID(),
+      primaryText,
+      secondaryText,
+      startDate: '',
+      endDate: '',
+      description: '',
+    };
+  });
+}
+
 function applyParsedText(current: ResumeData, parsed: ParsedResumeText): ResumeData {
   const next: ResumeData = {
     ...current,
+    sectionOrder: [...current.sectionOrder],
+    sectionTitles: { ...current.sectionTitles },
+    sectionTypes: { ...current.sectionTypes },
+    customSectionsData: { ...current.customSectionsData },
     personalInfo: {
       ...current.personalInfo,
       name: parsed.name || current.personalInfo.name,
@@ -287,14 +367,11 @@ function applyParsedText(current: ResumeData, parsed: ParsedResumeText): ResumeD
   }
 
   if (parsed.sections.languages) {
-    const languageSectionKey = current.sectionOrder.find(key => current.sectionTypes[key] === 'languages');
-    if (languageSectionKey) {
-      const languageItems: CustomSectionItem[] = splitLooseItems(parsed.sections.languages).slice(0, 12).map(item => {
-        const [primaryText, secondaryText = ''] = item.split(/[-–—:|]/).map(part => part.trim());
-        return { id: crypto.randomUUID(), primaryText, secondaryText, startDate: '', endDate: '', description: '' };
-      });
-      next.customSectionsData = { ...current.customSectionsData, [languageSectionKey]: languageItems };
-    }
+    upsertImportedListSection(next, 'languages', 'Languages', splitLooseItems(parsed.sections.languages));
+  }
+
+  if (parsed.sections.tools) {
+    upsertImportedListSection(next, 'default', 'Tools & Technologies', splitLooseItems(parsed.sections.tools));
   }
 
   return next;
@@ -344,6 +421,71 @@ function htmlToBlocksFromDocxHtml(html: string): string[] {
   return blocks;
 }
 
+interface PositionedPdfText {
+  str: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function pdfItemsToLines(items: unknown[]): string[] {
+  const positioned = items.flatMap<PositionedPdfText>(item => {
+    if (
+      typeof item !== 'object' ||
+      item === null ||
+      !('str' in item) ||
+      !('transform' in item) ||
+      !Array.isArray(item.transform)
+    ) {
+      return [];
+    }
+
+    const str = String(item.str || '').trim();
+    if (!str) return [];
+    const transform = item.transform as number[];
+    return [{
+      str,
+      x: Number(transform[4] || 0),
+      y: Number(transform[5] || 0),
+      width: Number('width' in item ? item.width : 0),
+      height: Math.abs(Number('height' in item ? item.height : transform[3] || 10)),
+    }];
+  });
+
+  const rows: PositionedPdfText[][] = [];
+  for (const item of positioned.sort((a, b) => b.y - a.y || a.x - b.x)) {
+    const row = rows.find(candidate => {
+      const baseline = candidate.reduce((total, value) => total + value.y, 0) / candidate.length;
+      const tolerance = Math.max(2.2, Math.min(5, item.height * 0.45));
+      return Math.abs(baseline - item.y) <= tolerance;
+    });
+    if (row) row.push(item);
+    else rows.push([item]);
+  }
+
+  return rows
+    .sort((a, b) => b[0].y - a[0].y)
+    .map(row => {
+      const fragments = row.sort((a, b) => a.x - b.x);
+      let line = '';
+      let previous: PositionedPdfText | null = null;
+
+      for (const fragment of fragments) {
+        if (previous) {
+          const gap = fragment.x - (previous.x + previous.width);
+          const previousCharWidth = previous.width / Math.max(1, previous.str.length);
+          line += gap > Math.max(22, previousCharWidth * 4) ? ' | ' : ' ';
+        }
+        line += fragment.str;
+        previous = fragment;
+      }
+
+      return normalizeText(line);
+    })
+    .filter(Boolean);
+}
+
 export async function extractResumeTextFromFile(file: File): Promise<string> {
   const extension = file.name.split('.').pop()?.toLowerCase();
   const buffer = await file.arrayBuffer();
@@ -352,19 +494,23 @@ export async function extractResumeTextFromFile(file: File): Promise<string> {
     const pdfjsLib = await import('pdfjs-dist');
     pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
     const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
-    const pages: string[] = [];
+    const blocks: string[] = [];
 
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
       const page = await pdf.getPage(pageNumber);
       const content = await page.getTextContent();
-      const pageText = content.items
-        .filter(item => 'str' in item && String(item.str || '').trim())
-        .map(item => ('str' in item ? String(item.str || '').trim() : ''))
-        .join(' ');
-      if (pageText.trim()) pages.push(pageText);
+      const pageLines = pdfItemsToLines(content.items);
+      if (pageLines.length) {
+        if (blocks.length) blocks.push('');
+        blocks.push(...pageLines);
+      }
     }
 
-    return JSON.stringify({ format: 'text', text: normalizeText(pages.join('\n\n')) } satisfies ParsedResumePayload);
+    return JSON.stringify({
+      format: 'structured',
+      blocks,
+      parsed: extractFromStructuredPayload({ format: 'structured', blocks }),
+    } satisfies ParsedResumePayload);
   }
 
   if (

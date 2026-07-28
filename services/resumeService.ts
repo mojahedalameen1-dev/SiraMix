@@ -77,6 +77,7 @@ export const resumeService = {
           name: data.name,
           data: sanitized.data,
           options: data.options,
+          sourceDocument: data.sourceDocument || null,
           createdAt: data.createdAt?.toMillis?.() || 0,
         };
       })
@@ -95,6 +96,7 @@ export const resumeService = {
       name: resume.name,
       data: resume.data,
       options: resume.options,
+      sourceDocument: resume.sourceDocument || null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -110,6 +112,7 @@ export const resumeService = {
     if (updates.name !== undefined) values.name = updates.name;
     if (updates.data !== undefined) values.data = updates.data;
     if (updates.options !== undefined) values.options = updates.options;
+    if (updates.sourceDocument !== undefined) values.sourceDocument = updates.sourceDocument;
     await setDoc(resumeRef(userId, resumeId), values, { merge: true });
   },
 
@@ -204,6 +207,7 @@ export const resumeService = {
           name: resume.name,
           data: resume.data,
           options: resume.options,
+          sourceDocument: resume.sourceDocument || null,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });

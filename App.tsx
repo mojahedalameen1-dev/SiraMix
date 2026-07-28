@@ -14,7 +14,8 @@ import { TargetIcon } from './components/icons/TargetIcon';
 import { LanguageProvider, useLanguage } from './i18n';
 import { resumeService } from './services/resumeService';
 import { extractResumeTextFromFile, getFirstImportedSection, importResumeTextIntoData } from './services/resumeImportService';
-import { DualResumeData, Resume, ResumeData, TemplateOptions } from './types';
+import { sourceDocumentService } from './services/sourceDocumentService';
+import { DualResumeData, Resume, ResumeData, SourceDocument, TemplateOptions } from './types';
 
 type WorkspaceTab = 'content' | 'design' | 'ats';
 type MobileWorkspaceView = 'form' | 'preview';
@@ -113,6 +114,7 @@ const MainAppContent: React.FC<{
   currentResume: Resume;
   setResumeData: (updater: React.SetStateAction<DualResumeData>) => void;
   setTemplateOptions: (options: TemplateOptions) => void;
+  setSourceDocument: (document: SourceDocument | null) => void;
   addResume: () => void;
   deleteResume: (id: string) => void;
   renameResume: (id: string, newName: string) => void;
@@ -129,6 +131,7 @@ const MainAppContent: React.FC<{
   currentResume,
   setResumeData,
   setTemplateOptions,
+  setSourceDocument,
   addResume,
   deleteResume,
   renameResume,
@@ -302,29 +305,48 @@ const MainAppContent: React.FC<{
         return;
       }
 
-      let importedSection = 'personalInfo';
-      setResumeData(prevDualData => {
-        const currentActiveData = prevDualData[activeLanguage];
-        const importedData = importResumeTextIntoData(currentActiveData, extractedText);
-        importedSection = getFirstImportedSection(currentActiveData, importedData);
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      const importedData = importResumeTextIntoData(activeData, extractedText);
+      const importedSection = getFirstImportedSection(activeData, importedData);
+      let nextSourceDocument: SourceDocument | null = null;
 
-        return {
-          ...prevDualData,
-          [activeLanguage]: importedData,
-        };
-      });
+      if (isPdf) {
+        nextSourceDocument = await sourceDocumentService.upload(user.id, currentResume.id, file);
+        if (currentResume.sourceDocument) {
+          await sourceDocumentService.remove(currentResume.sourceDocument).catch(error => {
+            console.warn('Could not remove the previous source PDF:', error);
+          });
+        }
+      } else if (currentResume.sourceDocument) {
+        await sourceDocumentService.remove(currentResume.sourceDocument).catch(error => {
+          console.warn('Could not remove the replaced source PDF:', error);
+        });
+      }
+
+      setResumeData(prevDualData => ({
+        ...prevDualData,
+        [activeLanguage]: importedData,
+      }));
+      setSourceDocument(nextSourceDocument);
 
       setActiveTab('content');
       setMobileView('form');
       setOpenSection(importedSection);
       setFocusSection(importedSection);
       window.setTimeout(() => setFocusSection(null), 1400);
-      setImportBanner(isRtl ? 'تم الاستيراد — راجع البيانات وعدّل ما تحتاج' : 'Imported — review the data and edit anything you need.');
-      toast.success(isRtl ? 'تم الاستيراد — راجع البيانات وعدّل ما تحتاج.' : 'Imported. Review the data and edit anything you need.');
+      setImportBanner(isPdf
+        ? (isRtl ? 'تم حفظ الأصل كما هو، وإنشاء نسخة منفصلة قابلة للتحرير' : 'Original preserved, with a separate editable copy.')
+        : (isRtl ? 'تم الاستيراد — راجع البيانات وعدّل ما تحتاج' : 'Imported — review the data and edit anything you need.'));
+      toast.success(isPdf
+        ? (isRtl ? 'تم حفظ تنسيق PDF الأصلي بالكامل.' : 'The original PDF formatting was fully preserved.')
+        : (isRtl ? 'تم الاستيراد — راجع البيانات وعدّل ما تحتاج.' : 'Imported. Review the data and edit anything you need.'));
     } catch (error) {
-      const message = error instanceof Error && error.message === 'UNSUPPORTED_FILE_TYPE'
+      const errorCode = error instanceof Error ? error.message : '';
+      const message = errorCode === 'UNSUPPORTED_FILE_TYPE'
         ? (isRtl ? 'نوع الملف غير مدعوم. ارفع ملف PDF أو DOCX فقط.' : 'Unsupported file type. Upload PDF or DOCX only.')
-        : (isRtl ? 'تعذر استيراد السيرة. تأكد أن الملف غير تالف ويحتوي على نص قابل للاستخراج.' : 'Could not import this resume. Make sure the file is not corrupted and contains extractable text.');
+        : errorCode === 'SOURCE_TOO_LARGE'
+          ? (isRtl ? 'حجم ملف PDF أكبر من 15 ميجابايت. اضغط الملف ثم أعد المحاولة.' : 'The PDF is larger than 15 MB. Compress it and try again.')
+          : (isRtl ? 'تعذر استيراد السيرة أو حفظ نسختها الأصلية. تحقق من الاتصال ثم حاول مرة أخرى.' : 'The resume or its original copy could not be saved. Check your connection and try again.');
       toast.error(message);
     } finally {
       setIsImportingResume(false);
@@ -529,6 +551,7 @@ const MainAppContent: React.FC<{
             <ResumePreview
               data={activeData}
               options={currentResume.options}
+              sourceDocument={currentResume.sourceDocument}
               setOptions={setTemplateOptions}
               onOpenLongestSection={() => openEditorSection(getLongestSectionKey(activeData))}
               onExportBackup={handleExportBackup}
@@ -692,6 +715,26 @@ const AppRoot: React.FC = () => {
     });
   };
 
+  const setSourceDocument = (sourceDocument: SourceDocument | null) => {
+    setSaveStatus('saving');
+    setResumes(prev => {
+      const updated = prev.map(resume =>
+        resume.id === activeResumeId ? { ...resume, sourceDocument } : resume,
+      );
+
+      if (user) {
+        resumeService.updateResumeImmediate(user.id, activeResumeId, { sourceDocument })
+          .then(() => setSaveStatus('saved'))
+          .catch(err => {
+            console.error('Error saving source document metadata:', err);
+            setSaveStatus('error');
+          });
+      }
+
+      return updated;
+    });
+  };
+
   const retrySave = () => {
     if (!user || !currentResume) return;
 
@@ -755,6 +798,12 @@ const AppRoot: React.FC = () => {
               try {
                 toast.dismiss(toastInstance.id);
                 if (user) {
+                  const resumeToDelete = resumes.find(resume => resume.id === id);
+                  if (resumeToDelete?.sourceDocument) {
+                    await sourceDocumentService.remove(resumeToDelete.sourceDocument).catch(error => {
+                      console.warn('Could not remove source PDF from storage:', error);
+                    });
+                  }
                   await resumeService.deleteResume(user.id, id);
                 }
                 const nextResumes = resumes.filter(resume => resume.id !== id);
@@ -834,6 +883,7 @@ const AppRoot: React.FC = () => {
       currentResume={currentResume}
       setResumeData={setResumeData}
       setTemplateOptions={setTemplateOptions}
+      setSourceDocument={setSourceDocument}
       addResume={addResume}
       deleteResume={deleteResume}
       renameResume={renameResume}

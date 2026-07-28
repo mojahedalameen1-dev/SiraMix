@@ -64,6 +64,16 @@ export interface TemplateOptions {
 
 export type Language = 'en' | 'ar';
 
+export interface SourceDocument {
+  kind: 'pdf';
+  name: string;
+  mimeType: 'application/pdf';
+  storagePath: string;
+  chunkCount: number;
+  size: number;
+  uploadedAt: string;
+}
+
 export interface DualResumeData {
   en: ResumeData;
   ar: ResumeData;
@@ -74,4 +84,5 @@ export interface Resume {
   name: string;
   data: DualResumeData;
   options: TemplateOptions;
+  sourceDocument?: SourceDocument | null;
 }

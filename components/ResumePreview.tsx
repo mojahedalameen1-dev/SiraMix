@@ -3,7 +3,9 @@ import { toast } from 'react-hot-toast';
 import { getFontFamilyOption } from '../constants';
 import { useTranslation } from '../i18n';
 import { buildDocxHtml } from '../services/docxTemplate';
-import { ResumeData, TemplateOptions } from '../types';
+import { sourceDocumentService } from '../services/sourceDocumentService';
+import { ResumeData, SourceDocument, TemplateOptions } from '../types';
+import { OriginalPdfPreview } from './OriginalPdfPreview';
 import ClassicTemplate from './templates/ClassicTemplate';
 import ModernTemplate from './templates/ModernTemplate';
 import RealisticTemplate, { RealisticTemplateId } from './templates/RealisticTemplate';
@@ -11,6 +13,7 @@ import RealisticTemplate, { RealisticTemplateId } from './templates/RealisticTem
 interface ResumePreviewProps {
   data: ResumeData;
   options: TemplateOptions;
+  sourceDocument?: SourceDocument | null;
   setOptions: (options: TemplateOptions) => void;
   onOpenLongestSection?: () => void;
   onExportBackup?: () => void;
@@ -24,7 +27,7 @@ function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
   };
 }
 
-export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, setOptions, onOpenLongestSection, onExportBackup }) => {
+export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, sourceDocument, setOptions, onOpenLongestSection, onExportBackup }) => {
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
@@ -34,6 +37,9 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
   const [overflowStatus, setOverflowStatus] = useState<'perfect' | 'spill' | 'safe2'>('perfect');
   const [previewHeight, setPreviewHeight] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
+  const [sourceBlob, setSourceBlob] = useState<Blob | null>(null);
+  const [sourceLoadFailed, setSourceLoadFailed] = useState(false);
+  const [viewMode, setViewMode] = useState<'original' | 'editable'>(sourceDocument ? 'original' : 'editable');
   const { t, language } = useTranslation();
 
   const A4_WIDTH_PX = 793.7;
@@ -46,7 +52,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
   const hasPersonalInfo = Object.values(data.personalInfo).some(value => value.trim());
   const hasCustomContent = Object.values(data.customSectionsData || {})
     .some(items => items.length > 0);
-  const isEmpty = !hasPersonalInfo
+  const isEmpty = !sourceDocument && !hasPersonalInfo
     && !data.summary.trim()
     && data.experience.length === 0
     && data.education.length === 0
@@ -73,6 +79,34 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
     document.body.removeChild(link);
     window.setTimeout(() => URL.revokeObjectURL(url), 1500);
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    setSourceBlob(null);
+    setSourceLoadFailed(false);
+
+    if (!sourceDocument) {
+      setViewMode('editable');
+      return;
+    }
+
+    setViewMode('original');
+    void sourceDocumentService.getBlob(sourceDocument)
+      .then(blob => {
+        if (!cancelled) setSourceBlob(blob);
+      })
+      .catch(error => {
+        if (!cancelled) {
+          console.error('Could not load source PDF:', error);
+          setSourceLoadFailed(true);
+          setViewMode('editable');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sourceDocument]);
 
   const waitForFonts = async () => {
     if ('fonts' in document) {
@@ -126,25 +160,33 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
     if (!input) return null;
 
     await waitForFonts();
-    const originalWidth = input.style.width;
-    const originalHeight = input.style.height;
+    const exportRoot = input.cloneNode(true) as HTMLElement;
+    exportRoot.removeAttribute('id');
+    exportRoot.style.position = 'fixed';
+    exportRoot.style.inset = '0 auto auto -10000px';
+    exportRoot.style.width = `${A4_WIDTH_PX}px`;
+    exportRoot.style.minHeight = `${A4_HEIGHT_PX}px`;
+    exportRoot.style.height = 'auto';
+    exportRoot.style.transform = 'none';
+    exportRoot.style.margin = '0';
+    exportRoot.style.boxShadow = 'none';
+    document.body.appendChild(exportRoot);
+
     try {
       const { default: html2canvas } = await import('html2canvas');
-      input.style.width = '1050px';
-      input.style.height = 'auto';
-      const captureHeight = Math.max(input.scrollHeight, 1485);
-      return await html2canvas(input, {
+      const captureHeight = Math.max(exportRoot.scrollHeight, A4_HEIGHT_PX);
+      return await html2canvas(exportRoot, {
         scale: 2,
         useCORS: true,
         logging: false,
-        width: 1050,
+        backgroundColor: '#ffffff',
+        width: A4_WIDTH_PX,
         height: captureHeight,
-        windowWidth: 1050,
+        windowWidth: A4_WIDTH_PX,
         windowHeight: captureHeight,
       });
     } finally {
-      input.style.width = originalWidth;
-      input.style.height = originalHeight;
+      exportRoot.remove();
     }
   };
 
@@ -162,25 +204,34 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
   };
 
   const handleDownloadPdf = async () => {
+    if (viewMode === 'original' && sourceDocument && sourceBlob) {
+      triggerDownload(sourceBlob, sourceDocument.name);
+      return;
+    }
+
     const canvas = await capturePreview();
     if (!canvas) return;
     const { jsPDF } = await import('jspdf');
-    const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imageHeight = (canvas.height * pdfWidth) / canvas.width;
-    let position = 0;
-    let remainingHeight = imageHeight;
+    const pageHeightPx = Math.round((canvas.width * pdfHeight) / pdfWidth);
+    const pageCount = Math.max(1, Math.ceil((canvas.height - 2) / pageHeightPx));
 
-    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imageHeight, undefined, 'FAST');
-    remainingHeight -= pdfHeight;
+    for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = pageHeightPx;
+      const context = pageCanvas.getContext('2d', { alpha: false });
+      if (!context) continue;
 
-    while (remainingHeight > 0.5) {
-      position -= pdfHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imageHeight, undefined, 'FAST');
-      remainingHeight -= pdfHeight;
+      const sourceY = pageIndex * pageHeightPx;
+      const sourceHeight = Math.min(pageHeightPx, Math.max(0, canvas.height - sourceY));
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+      context.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
+      if (pageIndex > 0) pdf.addPage();
+      pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
     }
     triggerDownload(pdf.output('blob'), `${fileName}.pdf`);
   };
@@ -241,15 +292,59 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
 
   return (
     <div className="space-y-4 lg:sticky lg:top-24">
+      {sourceDocument && (
+        <div className="rounded-2xl border border-[#00B5A5]/25 bg-[#00B5A5]/8 p-3 shadow-sm">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <div>
+              <p className="text-sm font-black text-foreground">
+                {language === 'ar' ? 'نسخة أصلية محفوظة دون تغيير' : 'Original file preserved unchanged'}
+              </p>
+              <p className="mt-1 text-xs font-medium text-muted-foreground">
+                {language === 'ar'
+                  ? 'المعاينة الأصلية وتصدير PDF يحافظان على الصفحات والتنسيق والألوان كما رُفعت.'
+                  : 'Original preview and PDF export keep the uploaded pages, layout, and colors exactly.'}
+              </p>
+            </div>
+            <div className="flex rounded-xl border border-border bg-background p-1">
+              <button
+                type="button"
+                onClick={() => setViewMode('original')}
+                disabled={!sourceBlob}
+                className={`rounded-lg px-3 py-2 text-xs font-black transition ${viewMode === 'original' ? 'bg-[#12231e] text-white' : 'text-muted-foreground hover:bg-accent'} disabled:opacity-50`}
+              >
+                {language === 'ar' ? 'مطابق للأصل' : 'Original'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('editable')}
+                className={`rounded-lg px-3 py-2 text-xs font-black transition ${viewMode === 'editable' ? 'bg-[#12231e] text-white' : 'text-muted-foreground hover:bg-accent'}`}
+              >
+                {language === 'ar' ? 'نسخة قابلة للتحرير' : 'Editable copy'}
+              </button>
+            </div>
+          </div>
+          {sourceLoadFailed && (
+            <p className="mt-2 text-xs font-bold text-red-600">
+              {language === 'ar' ? 'تعذر تحميل النسخة الأصلية، وتم فتح النسخة القابلة للتحرير.' : 'The original could not be loaded, so the editable copy is shown.'}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex-grow">
-          {overflowStatus === 'perfect' && (
+          {viewMode === 'original' && sourceDocument ? (
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-2 text-xs font-black text-emerald-700 dark:text-emerald-300">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              {language === 'ar' ? 'التنسيق الأصلي محفوظ بالكامل' : 'Original formatting fully preserved'}
+            </div>
+          ) : overflowStatus === 'perfect' && (
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-2 text-xs font-black text-emerald-700 dark:text-emerald-300">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               {t('resumePreview.perfect')}
             </div>
           )}
-          {overflowStatus === 'spill' && (
+          {viewMode === 'editable' && overflowStatus === 'spill' && (
             <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3.5 py-2 text-xs font-black text-amber-700 dark:text-amber-300">
               <span className="h-2 w-2 rounded-full bg-amber-500" />
               {t('resumePreview.spill')}
@@ -259,7 +354,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
               <button onClick={onOpenLongestSection} className="rounded-full bg-background px-2 py-1 text-blue-600">{t('resumePreview.openLongest')}</button>
             </div>
           )}
-          {overflowStatus === 'safe2' && (
+          {viewMode === 'editable' && overflowStatus === 'safe2' && (
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3.5 py-2 text-xs font-black text-blue-700 dark:text-blue-300">
               <span className="h-2 w-2 rounded-full bg-blue-600" />
               {t('resumePreview.safe2')}
@@ -287,7 +382,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
           <div className="relative" ref={exportMenuRef}>
             <button
               onClick={() => !isEmpty && setExportMenuOpen(prev => !prev)}
-              disabled={isEmpty || isExporting}
+              disabled={isEmpty || isExporting || (viewMode === 'original' && !sourceBlob)}
               className="flex items-center justify-center rounded-xl border border-blue-500/30 bg-blue-600 px-4 py-2 text-sm font-black text-white shadow-lg transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
               aria-haspopup="true"
               aria-expanded={exportMenuOpen}
@@ -306,12 +401,16 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
                 <button onClick={() => void runExport(handleDownloadPdf)} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
                   <span className="text-xs font-black text-red-500">PDF</span>{t('resumePreview.asPDF')}
                 </button>
-                <button onClick={() => void runExport(handleDownloadDoc)} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
-                  <span className="text-xs font-black text-blue-500">DOCX</span>{t('resumePreview.asWord')}
-                </button>
-                <button onClick={() => void runExport(handleDownloadImage)} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
-                  <span className="text-xs font-black text-amber-500">JPG</span>{t('resumePreview.asJPG')}
-                </button>
+                {viewMode === 'editable' && (
+                  <>
+                    <button onClick={() => void runExport(handleDownloadDoc)} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
+                      <span className="text-xs font-black text-blue-500">DOCX</span>{t('resumePreview.asWord')}
+                    </button>
+                    <button onClick={() => void runExport(handleDownloadImage)} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
+                      <span className="text-xs font-black text-amber-500">JPG</span>{t('resumePreview.asJPG')}
+                    </button>
+                  </>
+                )}
                 {onExportBackup && (
                   <button onClick={() => { onExportBackup(); setExportMenuOpen(false); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-semibold hover:bg-accent">
                     <span className="text-xs font-black text-emerald-600">JSON</span>{t('resumePreview.backupJson')}
@@ -327,8 +426,8 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
         ref={previewContainerRef}
         className="relative flex w-full items-start justify-center overflow-auto rounded-2xl border border-border/85 bg-slate-200/50 p-3 dark:bg-slate-900/40 sm:p-5"
         style={{
-          height: scale === 1 ? 'auto' : `${Math.max(A4_HEIGHT_PX, previewHeight) * scale + 18}px`,
-          minHeight: `${Math.max(A4_HEIGHT_PX, previewHeight) * scale + 18}px`,
+          height: viewMode === 'original' ? 'auto' : scale === 1 ? 'auto' : `${Math.max(A4_HEIGHT_PX, previewHeight) * scale + 18}px`,
+          minHeight: viewMode === 'original' ? 360 : `${Math.max(A4_HEIGHT_PX, previewHeight) * scale + 18}px`,
         }}
       >
         {isEmpty && (
@@ -348,27 +447,37 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, set
             </p>
           </div>
         )}
-        <div
-          style={{
-            transform: `scale(${scale})`,
-            transformOrigin: 'top center',
-            width: A4_WIDTH_PX,
-            height: Math.max(A4_HEIGHT_PX, previewHeight),
-          }}
-          className="overflow-hidden rounded-sm border border-slate-300 shadow-2xl dark:border-slate-800"
-        >
-          {options.template === 'classic' && <ClassicTemplate ref={previewRef} data={data} options={options} language={language} />}
-          {options.template === 'modern' && <ModernTemplate ref={previewRef} data={data} options={options} language={language} />}
-          {realisticTemplateIds.has(options.template) && (
-            <RealisticTemplate
-              ref={previewRef}
-              data={data}
-              options={options}
-              language={language}
-              variant={options.template as RealisticTemplateId}
-            />
-          )}
-        </div>
+        {viewMode === 'original' && sourceBlob ? (
+          <div style={{ width: A4_WIDTH_PX * scale }} className="shrink-0">
+            <OriginalPdfPreview blob={sourceBlob} scale={scale} language={language} />
+          </div>
+        ) : viewMode === 'original' && sourceDocument ? (
+          <div className="grid min-h-80 w-full place-items-center rounded-2xl bg-white p-8 text-sm font-black text-slate-500">
+            {language === 'ar' ? 'جار تحميل النسخة الأصلية المحفوظة...' : 'Loading the preserved original...'}
+          </div>
+        ) : (
+          <div
+            style={{
+              transform: `scale(${scale})`,
+              transformOrigin: 'top center',
+              width: A4_WIDTH_PX,
+              height: Math.max(A4_HEIGHT_PX, previewHeight),
+            }}
+            className="overflow-hidden rounded-sm border border-slate-300 shadow-2xl dark:border-slate-800"
+          >
+            {options.template === 'classic' && <ClassicTemplate ref={previewRef} data={data} options={options} language={language} />}
+            {options.template === 'modern' && <ModernTemplate ref={previewRef} data={data} options={options} language={language} />}
+            {realisticTemplateIds.has(options.template) && (
+              <RealisticTemplate
+                ref={previewRef}
+                data={data}
+                options={options}
+                language={language}
+                variant={options.template as RealisticTemplateId}
+              />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
