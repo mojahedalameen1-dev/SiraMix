@@ -1,8 +1,8 @@
 import express from "express";
 import path from "path";
 import htmlToDocx from "html-to-docx";
-import JSZip from "jszip";
 import { createServer as createViteServer } from "vite";
+import { finalizeDocx } from "./services/docxPostprocess";
 
 interface DocxExportRequest {
   html?: unknown;
@@ -44,31 +44,6 @@ function toHalfPoints(value: unknown, fallback = 20) {
   return fallback;
 }
 
-async function removeDefaultTableBorders(input: Buffer): Promise<Buffer> {
-  const archive = await JSZip.loadAsync(input);
-  const documentFile = archive.file("word/document.xml");
-  if (!documentFile) return input;
-
-  const documentXml = await documentFile.async("string");
-  const borderlessXml = documentXml.replace(
-    /<w:tblBorders>[\s\S]*?<\/w:tblBorders>/g,
-    "",
-  );
-  const compactClosingParagraph = [
-    "<w:p><w:pPr>",
-    '<w:spacing w:before="0" w:after="0" w:line="20" w:lineRule="exact"/>',
-    "</w:pPr><w:r><w:rPr>",
-    '<w:sz w:val="2"/><w:szCs w:val="2"/>',
-    "</w:rPr></w:r></w:p>",
-  ].join("");
-  const cleanedXml = borderlessXml.replace(
-    /<w:p>\s*<w:pPr>\s*<w:spacing w:lineRule="auto"\/>\s*<\/w:pPr>\s*<w:r>\s*<w:rPr\/>\s*<\/w:r>\s*<\/w:p>\s*(?=<\/w:body>)/,
-    compactClosingParagraph,
-  );
-  archive.file("word/document.xml", cleanedXml);
-  return archive.generateAsync({ type: "nodebuffer" });
-}
-
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT || 3000);
@@ -107,7 +82,7 @@ async function startServer() {
       });
 
       const rawBuffer = docx instanceof Buffer ? docx : Buffer.from(await (docx as Blob).arrayBuffer());
-      const buffer = await removeDefaultTableBorders(rawBuffer);
+      const buffer = await finalizeDocx(rawBuffer);
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
       res.setHeader("Content-Disposition", 'attachment; filename="SiraMix-Resume.docx"');
       return res.send(buffer);

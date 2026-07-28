@@ -88,8 +88,18 @@ function renderDescription(value: string, accent: string): string {
     .join('');
 }
 
-function renderSectionTitle(title: string, accent: string, headingColor: string, align: string): string {
-  return `<p style="margin:6pt 0 3pt 0;padding:0 0 3pt 0;border-bottom:1.2pt solid ${accent};text-align:${align};color:${headingColor};font-size:10.5pt;font-weight:bold;letter-spacing:.4pt;">${text(title.toUpperCase())}</p>`;
+function renderSectionTitle(
+  title: string,
+  accent: string,
+  headingColor: string,
+  align: string,
+  includeTopRule = false,
+): string {
+  const topRuleMarker = includeTopRule
+    ? `__SIRAMIX_TOP_RULE_${accent.slice(1).toUpperCase()}__`
+    : '';
+  const ruleMarker = `__SIRAMIX_RULE_${accent.slice(1).toUpperCase()}__`;
+  return `<p style="margin:6pt 0 3pt 0;padding:0 0 3pt 0;text-align:${align};color:${headingColor};font-size:10.5pt;font-weight:bold;letter-spacing:.4pt;">${topRuleMarker}${text(title.toUpperCase())}${ruleMarker}</p>`;
 }
 
 function renderExperience(items: WorkExperience[], accent: string, align: string): string {
@@ -241,6 +251,7 @@ function buildSection(
   headingColor: string,
   align: string,
   constrainedColumn = false,
+  includeTopRule = false,
 ): string {
   const title = data.sectionTitles[key] || BASE_SECTION_TITLES[language][key] || key;
   let content = '';
@@ -261,11 +272,11 @@ function buildSection(
 
   if (!content) return '';
   if (constrainedColumn) {
-    return `${renderSectionTitle(title, accent, headingColor, align)}${content}`;
+    return `${renderSectionTitle(title, accent, headingColor, align, includeTopRule)}${content}`;
   }
 
   return `<div style="page-break-inside:auto;">
-    ${renderSectionTitle(title, accent, headingColor, align)}
+    ${renderSectionTitle(title, accent, headingColor, align, includeTopRule)}
     ${content}
   </div>`;
 }
@@ -287,7 +298,7 @@ export function buildDocxHtml(
   const centeredHeader = layout === 'centered' || options.template === 'classic' || options.template === 'modern';
 
   const headerAlign = centeredHeader ? 'center' : align;
-  const header = `<div style="margin:0 0 5pt 0;padding:0 0 4pt 0;border-bottom:1.2pt solid ${options.template === 'classic' || options.template === 'modern' ? accent : headingColor};text-align:${headerAlign};page-break-inside:avoid;">
+  const header = `<div style="margin:0 0 5pt 0;padding:0 0 4pt 0;text-align:${headerAlign};page-break-inside:avoid;">
     <p style="margin:0;text-align:${headerAlign};font-size:21pt;line-height:1;font-weight:bold;color:${options.template === 'classic' || options.template === 'modern' ? accent : headingColor};">${text(data.personalInfo.name)}</p>
     ${data.personalInfo.title ? `<p style="margin:3pt 0 0 0;text-align:${headerAlign};font-size:11pt;font-weight:bold;color:${accent};">${text(data.personalInfo.title)}</p>` : ''}
     ${renderContact(data, accent, language)}
@@ -319,7 +330,7 @@ export function buildDocxHtml(
     </table>`;
   } else {
     body = data.sectionOrder
-      .map(key => buildSection(key, data, language, accent, headingColor, align))
+      .map((key, index) => buildSection(key, data, language, accent, headingColor, align, false, index === 0))
       .join('');
   }
 

@@ -1,4 +1,5 @@
 import htmlToDocx from 'html-to-docx';
+import { finalizeDocx } from '../../services/docxPostprocess';
 
 interface VercelRequestLike {
   method?: string;
@@ -88,7 +89,8 @@ export default async function handler(req: VercelRequestLike, res: VercelRespons
       lang: options.lang || 'en-US',
     });
 
-    const buffer = docx instanceof Buffer ? docx : Buffer.from(await (docx as Blob).arrayBuffer());
+    const rawBuffer = docx instanceof Buffer ? docx : Buffer.from(await (docx as Blob).arrayBuffer());
+    const buffer = await finalizeDocx(rawBuffer);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     res.setHeader('Content-Disposition', 'attachment; filename="SiraMix-Resume.docx"');
     return res.status(200).send(buffer);
