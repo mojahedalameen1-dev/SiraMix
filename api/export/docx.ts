@@ -1,5 +1,5 @@
 import htmlToDocx from 'html-to-docx';
-import { finalizeDocx } from '../../services/docxPostprocess';
+import { finalizeDocx } from '../../services/docxPostprocess.js';
 
 interface VercelRequestLike {
   method?: string;
