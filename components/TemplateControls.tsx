@@ -9,6 +9,40 @@ interface TemplateControlsProps {
   language: Language;
 }
 
+interface TemplateMiniPreviewProps {
+  accent: string;
+  layout: string;
+  active: boolean;
+}
+
+const TemplateMiniPreview: React.FC<TemplateMiniPreviewProps> = ({ accent, layout, active }) => (
+  <div className={`relative aspect-[3/4] overflow-hidden rounded-lg border bg-white p-2 shadow-sm ${active ? 'border-[#00B5A5]' : 'border-border'}`}>
+    <div className="h-1.5 w-2/3 rounded-full" style={{ backgroundColor: accent }} />
+    <div className="mt-1 h-1 w-1/2 rounded-full bg-slate-300" />
+    <div className="mt-2 h-px bg-slate-200" />
+    <div className={layout === 'single' || layout === 'centered' || layout === 'minimal' ? 'mt-2 space-y-1.5' : 'mt-2 grid grid-cols-[1.6fr_1fr] gap-2'}>
+      <div className="space-y-1.5">
+        <div className="h-1 w-1/3 rounded-full" style={{ backgroundColor: accent }} />
+        <div className="h-1 rounded-full bg-slate-200" />
+        <div className="h-1 w-5/6 rounded-full bg-slate-200" />
+        <div className="h-1 w-4/5 rounded-full bg-slate-200" />
+        <div className="h-1 w-1/3 rounded-full" style={{ backgroundColor: accent }} />
+        <div className="h-1 rounded-full bg-slate-200" />
+        <div className="h-1 w-3/4 rounded-full bg-slate-200" />
+      </div>
+      {!(layout === 'single' || layout === 'centered' || layout === 'minimal') && (
+        <div className="space-y-1">
+          <div className="h-1 w-2/3 rounded-full" style={{ backgroundColor: accent }} />
+          <div className="h-1 rounded-full bg-slate-200" />
+          <div className="h-1 rounded-full bg-slate-200" />
+          <div className="mt-2 h-8 rounded-full opacity-20" style={{ backgroundColor: accent }} />
+        </div>
+      )}
+    </div>
+    {active && <div className="absolute end-1 top-1 h-2.5 w-2.5 rounded-full bg-[#00B5A5]" />}
+  </div>
+);
+
 const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions, language }) => {
   const { t } = useTranslation();
   const numericFontSize = parseFloat(options.fontSize);
@@ -25,36 +59,8 @@ const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions
     setOptions({ ...options, [key]: value });
   };
 
-  const TemplateMiniPreview: React.FC<{ accent: string; layout: string; active: boolean }> = ({ accent, layout, active }) => (
-    <div className={`relative aspect-[3/4] overflow-hidden rounded-lg border bg-white p-2 shadow-sm ${active ? 'border-[#00B5A5]' : 'border-border'}`}>
-      <div className="h-1.5 w-2/3 rounded-full" style={{ backgroundColor: accent }} />
-      <div className="mt-1 h-1 w-1/2 rounded-full bg-slate-300" />
-      <div className="mt-2 h-px bg-slate-200" />
-      <div className={layout === 'single' || layout === 'centered' || layout === 'minimal' ? 'mt-2 space-y-1.5' : 'mt-2 grid grid-cols-[1.6fr_1fr] gap-2'}>
-        <div className="space-y-1.5">
-          <div className="h-1 w-1/3 rounded-full" style={{ backgroundColor: accent }} />
-          <div className="h-1 rounded-full bg-slate-200" />
-          <div className="h-1 w-5/6 rounded-full bg-slate-200" />
-          <div className="h-1 w-4/5 rounded-full bg-slate-200" />
-          <div className="h-1 w-1/3 rounded-full" style={{ backgroundColor: accent }} />
-          <div className="h-1 rounded-full bg-slate-200" />
-          <div className="h-1 w-3/4 rounded-full bg-slate-200" />
-        </div>
-        {!(layout === 'single' || layout === 'centered' || layout === 'minimal') && (
-          <div className="space-y-1">
-            <div className="h-1 w-2/3 rounded-full" style={{ backgroundColor: accent }} />
-            <div className="h-1 rounded-full bg-slate-200" />
-            <div className="h-1 rounded-full bg-slate-200" />
-            <div className="mt-2 h-8 rounded-full opacity-20" style={{ backgroundColor: accent }} />
-          </div>
-        )}
-      </div>
-      {active && <div className="absolute end-1 top-1 h-2.5 w-2.5 rounded-full bg-[#00B5A5]" />}
-    </div>
-  );
-
   return (
-    <div className="space-y-4 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-sm backdrop-blur">
+    <div className="brand-surface space-y-4 rounded-2xl p-4">
       <div>
         <div className="mb-2 flex items-center justify-between">
           <label className="block text-sm font-black text-foreground">{t('templateControls.template')}</label>
@@ -66,7 +72,7 @@ const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions
               key={template.id}
               onClick={() => handleChange('template', template.id)}
               className={`group rounded-2xl border p-2 text-start transition duration-200 hover:-translate-y-1 hover:shadow-lg ${
-                options.template === template.id ? 'border-[#00B5A5] bg-[#00B5A5]/10 shadow-sm' : 'border-transparent bg-secondary/80 hover:bg-accent'
+                options.template === template.id ? 'border-[#67c7a5] bg-[#67c7a5]/12 shadow-sm' : 'border-transparent bg-secondary/80 hover:border-[#67c7a5]/35 hover:bg-accent'
               }`}
             >
               <TemplateMiniPreview accent={template.accent} layout={template.layout} active={options.template === template.id} />
@@ -90,7 +96,7 @@ const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions
               key={color.value}
               title={color.name}
               onClick={() => handleChange('accentColor', color.value)}
-              className={`h-9 w-9 rounded-full border-2 transition hover:scale-105 ${options.accentColor === color.value ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-card' : 'border-transparent'}`}
+              className={`h-9 w-9 rounded-full border-2 transition hover:scale-110 ${options.accentColor === color.value ? 'ring-2 ring-[#ff6b4a] ring-offset-2 dark:ring-offset-card' : 'border-transparent'}`}
               style={{ backgroundColor: color.value }}
             />
           ))}
@@ -140,7 +146,7 @@ const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions
               key={id}
               onClick={() => handleChange('lineSpacing', id)}
               className={`rounded-xl px-2.5 py-2 text-xs font-bold transition ${
-                (options.lineSpacing || 'normal') === id ? 'bg-blue-600 text-white' : 'bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground'
+                (options.lineSpacing || 'normal') === id ? 'brand-tab-active' : 'bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground'
               }`}
             >
               {t(`templateControls.${id}`)}
@@ -157,7 +163,7 @@ const TemplateControls: React.FC<TemplateControlsProps> = ({ options, setOptions
               key={id}
               onClick={() => handleChange('marginSize', id)}
               className={`rounded-xl px-2.5 py-2 text-xs font-bold transition ${
-                (options.marginSize || 'normal') === id ? 'bg-blue-600 text-white' : 'bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground'
+                (options.marginSize || 'normal') === id ? 'brand-tab-active' : 'bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground'
               }`}
             >
               {t(`templateControls.${id}`)}

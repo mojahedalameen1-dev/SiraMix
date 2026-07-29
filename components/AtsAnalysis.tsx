@@ -135,7 +135,8 @@ export const AtsAnalysis: React.FC<AtsAnalysisProps> = ({ data, onSelectSection 
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="brand-surface relative overflow-hidden rounded-2xl p-5">
+        <div className="pointer-events-none absolute -end-12 -top-12 h-36 w-36 rounded-full bg-[#67c7a5]/15 blur-2xl" />
         <div className="flex flex-col items-center gap-5 md:flex-row">
           <CircularProgress score={analysis.score} size={116} strokeWidth={10} />
           <div className="flex-1 text-center md:text-start">
@@ -160,7 +161,7 @@ export const AtsAnalysis: React.FC<AtsAnalysisProps> = ({ data, onSelectSection 
               >
                 <span className="block text-sm font-black text-foreground">{isRtl ? check.titleAr : check.titleEn}</span>
                 <span className="mt-1 block text-xs leading-6 text-muted-foreground">{isRtl ? check.fixAr : check.fixEn}</span>
-                <span className="mt-2 inline-flex text-xs font-bold text-blue-600">{t('ats.goToSection')}</span>
+                <span className="mt-2 inline-flex text-xs font-black text-[#17664f] dark:text-[#83e0bf]">{t('ats.goToSection')}</span>
               </button>
             ))}
           </div>
@@ -190,7 +191,7 @@ export const AtsAnalysis: React.FC<AtsAnalysisProps> = ({ data, onSelectSection 
                   </div>
                   <p className="mt-2 text-xs leading-6 text-muted-foreground">{isRtl ? check.bodyAr : check.bodyEn}</p>
                   {!passed && (
-                    <button onClick={() => onSelectSection?.(check.section)} className="mt-3 text-xs font-black text-blue-600 hover:text-blue-700">
+                    <button onClick={() => onSelectSection?.(check.section)} className="mt-3 text-xs font-black text-[#17664f] hover:text-[#ff6b4a] dark:text-[#83e0bf]">
                       {t('ats.goToSection')}
                     </button>
                   )}

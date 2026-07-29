@@ -176,7 +176,7 @@ const Section = <T extends Item,>({
   );
 
   return (
-    <div className={`bg-card rounded-xl shadow-sm border group transition-all ${isHighlighted ? 'border-[#00B5A5] ring-2 ring-[#00B5A5]/20' : 'border-border'}`}>
+    <div className={`brand-surface group overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-0.5 ${isHighlighted ? 'border-[#00B5A5] ring-2 ring-[#00B5A5]/20' : ''}`}>
       {isCollapsible ? (
         <div
           role="button"
@@ -190,7 +190,7 @@ const Section = <T extends Item,>({
           onClick={onToggle}
           aria-expanded={isOpen}
           aria-controls={contentId}
-          className={`w-full flex items-center text-lg font-semibold text-foreground p-4 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset ${isOpen ? 'border-b border-border' : ''}`}
+          className={`flex w-full cursor-pointer items-center p-4 text-base font-black text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset ${isOpen ? 'border-b border-[#67c7a5]/20 bg-[#67c7a5]/5' : 'hover:bg-[#67c7a5]/5'}`}
         >
           <HeaderContent />
         </div>
@@ -210,7 +210,7 @@ const Section = <T extends Item,>({
             {(!React.isValidElement(children) || (children.type as any).name !== 'Section') && (
               <div className="space-y-4">
                 {items && renderItem && items.map((item, index) => (
-                  <div key={item.id} className="p-3 bg-secondary/50 rounded-md border border-border/70 relative group/item">
+                  <div key={item.id} className="group/item relative rounded-xl border border-border/70 bg-secondary/45 p-3 transition hover:border-[#67c7a5]/45 hover:bg-[#67c7a5]/5">
                     <div className="absolute top-1 end-1">
                         <button
                           type="button"
@@ -233,7 +233,7 @@ const Section = <T extends Item,>({
                 )}
 
                 {setItems && newItem && (
-                  <button type="button" onClick={addItem} className="mt-2 flex w-full items-center justify-center rounded-md bg-blue-500/10 p-2 text-sm text-blue-600 transition-colors hover:bg-blue-500/20 dark:text-blue-400">
+                  <button type="button" onClick={addItem} className="mt-2 flex w-full items-center justify-center rounded-xl border border-dashed border-[#67c7a5]/60 bg-[#67c7a5]/10 p-2.5 text-sm font-black text-[#17664f] transition hover:border-[#ff6b4a]/50 hover:bg-[#ff6b4a]/10 hover:text-[#d84f31] dark:text-[#83e0bf]">
                     <PlusIcon /> <span className="mx-2">{t('section.addNew')}</span>
                   </button>
                 )}

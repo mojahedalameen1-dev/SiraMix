@@ -37,13 +37,13 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   const isRtl = document.documentElement.dir === 'rtl';
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 bg-background border border-border rounded-xl shadow-sm">
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-[#67c7a5]/25 bg-background/80 p-4 shadow-sm">
       <div className="relative" style={{ width: size, height: size }}>
         {/* SVG Progress Circle */}
         <svg className="w-full h-full transform -rotate-90">
           {/* Background circle */}
           <circle
-            className="stroke-slate-100 dark:stroke-slate-800"
+            className="stroke-[#67c7a5]/15 dark:stroke-[#67c7a5]/10"
             fill="transparent"
             strokeWidth={strokeWidth}
             r={radius}

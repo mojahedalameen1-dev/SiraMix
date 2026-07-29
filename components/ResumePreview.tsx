@@ -293,7 +293,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, sou
   return (
     <div className="space-y-4 lg:sticky lg:top-24">
       {sourceDocument && (
-        <div className="rounded-2xl border border-[#00B5A5]/25 bg-[#00B5A5]/8 p-3 shadow-sm">
+        <div className="brand-surface rounded-2xl border-[#67c7a5]/30 p-3">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
               <p className="text-sm font-black text-foreground">
@@ -310,14 +310,14 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, sou
                 type="button"
                 onClick={() => setViewMode('original')}
                 disabled={!sourceBlob}
-                className={`rounded-lg px-3 py-2 text-xs font-black transition ${viewMode === 'original' ? 'bg-[#12231e] text-white' : 'text-muted-foreground hover:bg-accent'} disabled:opacity-50`}
+                className={`rounded-lg px-3 py-2 text-xs font-black transition ${viewMode === 'original' ? 'brand-tab-active' : 'text-muted-foreground hover:bg-accent'} disabled:opacity-50`}
               >
                 {language === 'ar' ? 'مطابق للأصل' : 'Original'}
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('editable')}
-                className={`rounded-lg px-3 py-2 text-xs font-black transition ${viewMode === 'editable' ? 'bg-[#12231e] text-white' : 'text-muted-foreground hover:bg-accent'}`}
+                className={`rounded-lg px-3 py-2 text-xs font-black transition ${viewMode === 'editable' ? 'brand-tab-active' : 'text-muted-foreground hover:bg-accent'}`}
               >
                 {language === 'ar' ? 'نسخة قابلة للتحرير' : 'Editable copy'}
               </button>
@@ -348,10 +348,10 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, sou
             <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3.5 py-2 text-xs font-black text-amber-700 dark:text-amber-300">
               <span className="h-2 w-2 rounded-full bg-amber-500" />
               {t('resumePreview.spill')}
-              <button onClick={reduceFont} className="rounded-full bg-background px-2 py-1 text-blue-600">{t('resumePreview.reduceFont')}</button>
-              <button onClick={reduceMargins} className="rounded-full bg-background px-2 py-1 text-blue-600">{t('resumePreview.reduceMargins')}</button>
-              <button onClick={reduceSpacing} className="rounded-full bg-background px-2 py-1 text-blue-600">{t('resumePreview.reduceSpacing')}</button>
-              <button onClick={onOpenLongestSection} className="rounded-full bg-background px-2 py-1 text-blue-600">{t('resumePreview.openLongest')}</button>
+              <button onClick={reduceFont} className="rounded-full bg-background px-2 py-1 text-[#17664f]">{t('resumePreview.reduceFont')}</button>
+              <button onClick={reduceMargins} className="rounded-full bg-background px-2 py-1 text-[#17664f]">{t('resumePreview.reduceMargins')}</button>
+              <button onClick={reduceSpacing} className="rounded-full bg-background px-2 py-1 text-[#17664f]">{t('resumePreview.reduceSpacing')}</button>
+              <button onClick={onOpenLongestSection} className="rounded-full bg-background px-2 py-1 text-[#17664f]">{t('resumePreview.openLongest')}</button>
             </div>
           )}
           {viewMode === 'editable' && overflowStatus === 'safe2' && (
@@ -363,7 +363,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, sou
         </div>
 
         <div className="flex flex-wrap justify-end gap-2">
-          <div className="flex rounded-xl border border-border bg-card p-1">
+          <div className="brand-surface flex rounded-xl p-1">
             {([
               ['fit-width', t('resumePreview.fitWidth')],
               ['actual', t('resumePreview.zoom100')],
@@ -372,7 +372,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, sou
               <button
                 key={mode}
                 onClick={() => setZoomMode(mode)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold ${zoomMode === mode ? 'bg-[#202432] text-white dark:bg-[#d5ff63] dark:text-[#101418]' : 'text-muted-foreground hover:bg-accent'}`}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${zoomMode === mode ? 'brand-tab-active' : 'text-muted-foreground hover:bg-accent'}`}
               >
                 {label}
               </button>
@@ -383,7 +383,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, sou
             <button
               onClick={() => !isEmpty && setExportMenuOpen(prev => !prev)}
               disabled={isEmpty || isExporting || (viewMode === 'original' && !sourceBlob)}
-              className="flex items-center justify-center rounded-xl border border-blue-500/30 bg-blue-600 px-4 py-2 text-sm font-black text-white shadow-lg transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
+              className="brand-action flex items-center justify-center rounded-xl px-4 py-2 text-sm font-black disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
               aria-haspopup="true"
               aria-expanded={exportMenuOpen}
               title={isEmpty ? (language === 'ar' ? 'أضف معلوماتك أولًا' : 'Add your details first') : undefined}
@@ -394,7 +394,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, sou
               </svg>
             </button>
             {exportMenuOpen && (
-              <div className="absolute end-0 z-30 mt-2 w-56 overflow-hidden rounded-xl border border-border bg-card py-1.5 shadow-xl">
+              <div className="brand-surface absolute end-0 z-30 mt-2 w-56 overflow-hidden rounded-xl py-1.5 shadow-xl">
                 <div className="mb-1 border-b border-border px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
                   {t('resumePreview.exportFor')}
                 </div>
@@ -424,7 +424,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, sou
 
       <div
         ref={previewContainerRef}
-        className="relative flex w-full items-start justify-center overflow-auto rounded-2xl border border-border/85 bg-slate-200/50 p-3 dark:bg-slate-900/40 sm:p-5"
+        className="brand-preview-stage relative flex w-full items-start justify-center overflow-auto rounded-[1.75rem] border border-[#67c7a5]/25 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.65),0_24px_60px_rgba(18,35,30,0.08)] sm:p-5"
         style={{
           height: viewMode === 'original' ? 'auto' : scale === 1 ? 'auto' : `${Math.max(A4_HEIGHT_PX, previewHeight) * scale + 18}px`,
           minHeight: viewMode === 'original' ? 360 : `${Math.max(A4_HEIGHT_PX, previewHeight) * scale + 18}px`,

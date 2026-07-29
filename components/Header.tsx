@@ -94,7 +94,7 @@ const Header: React.FC<HeaderProps> = ({
 
   const saveLabel = saveStatus === 'saving' ? t('header.saveSaving') : saveStatus === 'error' ? t('header.saveError') : t('header.saveSaved');
   const saveClass = saveStatus === 'saving'
-    ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300'
+    ? 'bg-[#67c7a5]/15 text-[#17664f] dark:text-[#83e0bf]'
     : saveStatus === 'error'
       ? 'bg-red-500/10 text-red-700 dark:text-red-300'
       : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
@@ -109,7 +109,7 @@ const Header: React.FC<HeaderProps> = ({
       onClick={() => setLanguage(value)}
       className={`relative rounded-xl px-3 py-2 text-xs font-black transition-all ${
         language === value
-          ? 'bg-[#00B5A5] text-white shadow-md shadow-[#00B5A5]/20'
+          ? 'brand-tab-active'
           : 'text-muted-foreground hover:bg-accent hover:text-foreground'
       }`}
       aria-pressed={language === value}
@@ -123,11 +123,12 @@ const Header: React.FC<HeaderProps> = ({
   );
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border/80 bg-card/90 shadow-[0_10px_30px_rgba(15,23,42,0.04)] backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-[#67c7a5]/25 bg-card/88 shadow-[0_12px_40px_rgba(18,35,30,0.07)] backdrop-blur-2xl">
       <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-2.5">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className="shrink-0 rounded-2xl border border-border/70 bg-background/80 p-1.5 shadow-sm">
-            <Logo showText={false} size="md" />
+          <div className="brand-logo-motion shrink-0 rounded-2xl border border-[#67c7a5]/25 bg-background/80 p-1.5 shadow-sm">
+            <Logo showText={false} size="md" className="xl:hidden" />
+            <Logo size="md" className="hidden xl:inline-flex" />
           </div>
 
           <div className="flex min-w-0 items-center gap-1 rounded-2xl border border-border/80 bg-background/80 p-1 shadow-sm">
@@ -184,7 +185,7 @@ const Header: React.FC<HeaderProps> = ({
           </div>
 
           <div className={`hidden items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black sm:inline-flex ${saveClass}`}>
-            <span className={`h-2 w-2 rounded-full ${saveStatus === 'saving' ? 'animate-pulse bg-blue-500' : saveStatus === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`} />
+            <span className={`h-2 w-2 rounded-full ${saveStatus === 'saving' ? 'animate-pulse bg-[#00B5A5]' : saveStatus === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`} />
             {saveLabel}
             {saveStatus === 'error' && (
               <button type="button" onClick={onRetrySave} className="ms-1 underline underline-offset-2">
@@ -207,7 +208,7 @@ const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-transparent text-muted-foreground transition hover:border-[#67c7a5]/30 hover:bg-[#67c7a5]/10 hover:text-[#17664f]"
             aria-label={t('header.toggleTheme')}
           >
             {theme === 'light' ? <MoonIcon /> : <SunIcon />}
@@ -217,7 +218,7 @@ const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={() => setMoreOpen(prev => !prev)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition hover:bg-accent hover:text-foreground"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition hover:border-[#67c7a5]/40 hover:bg-[#67c7a5]/10 hover:text-[#17664f]"
               aria-haspopup="menu"
               aria-expanded={moreOpen}
               aria-label={isRtl ? 'المزيد' : 'More'}
@@ -250,9 +251,9 @@ const Header: React.FC<HeaderProps> = ({
 
           <div className="flex items-center gap-3 border-s border-border ps-3">
             {userAvatar ? (
-              <img src={userAvatar} alt={userFullName} referrerPolicy="no-referrer" className="h-9 w-9 rounded-full border border-border object-cover" />
+              <img src={userAvatar} alt={userFullName} referrerPolicy="no-referrer" className="h-9 w-9 rounded-full border-2 border-[#67c7a5] object-cover shadow-sm" />
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-xs font-black text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#67c7a5]/20 text-xs font-black text-[#17664f] ring-1 ring-[#67c7a5]/35 dark:text-[#83e0bf]">
                 {userInitials}
               </div>
             )}

@@ -11,6 +11,7 @@ import TemplateControls from './components/TemplateControls';
 import { AtsAnalysis } from './components/AtsAnalysis';
 import { PencilIcon } from './components/icons/PencilIcon';
 import { TargetIcon } from './components/icons/TargetIcon';
+import { BrandLoader } from './components/BrandLoader';
 import { LanguageProvider, useLanguage } from './i18n';
 import { resumeService } from './services/resumeService';
 import { extractResumeTextFromFile, getFirstImportedSection, importResumeTextIntoData } from './services/resumeImportService';
@@ -354,8 +355,8 @@ const MainAppContent: React.FC<{
   };
 
   return (
-    <div className="min-h-screen text-gray-800 dark:text-gray-200 transition-colors duration-300 flex flex-col">
-      <Toaster position="bottom-right" toastOptions={{ className: 'bg-white dark:bg-gray-700 dark:text-white' }} />
+    <div className="workspace-shell flex min-h-screen flex-col text-gray-800 transition-colors duration-300 dark:text-gray-200">
+      <Toaster position="bottom-right" toastOptions={{ className: 'brand-surface !rounded-2xl !text-foreground' }} />
       <Header
         theme={theme}
         setTheme={setTheme}
@@ -377,8 +378,9 @@ const MainAppContent: React.FC<{
 
       <main className="container mx-auto flex-grow space-y-4 px-3 py-4 sm:px-4 lg:py-6">
         {currentCompletion === 0 && (
-          <section className="relative overflow-hidden rounded-3xl border border-[#00B5A5]/20 bg-gradient-to-l from-[#00B5A5]/15 via-card to-card p-5 shadow-sm sm:p-6">
+          <section className="brand-surface brand-enter relative overflow-hidden rounded-[1.75rem] border-[#67c7a5]/30 p-5 sm:p-6">
             <div className="absolute -end-12 -top-16 h-40 w-40 rounded-full bg-[#00B5A5]/15 blur-2xl" />
+            <div className="absolute -bottom-16 start-1/3 h-32 w-32 rounded-full bg-[#ff6b4a]/10 blur-2xl" />
             <div className="relative flex flex-col justify-between gap-5 md:flex-row md:items-center">
               <div>
                 <span className="inline-flex rounded-full bg-[#00B5A5] px-3 py-1 text-[10px] font-black text-white">
@@ -397,7 +399,7 @@ const MainAppContent: React.FC<{
                 <button
                   type="button"
                   onClick={() => openEditorSection('personalInfo')}
-                  className="rounded-xl bg-[#12231e] px-5 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[#00B5A5]"
+                  className="brand-action rounded-xl px-5 py-3 text-sm font-black"
                 >
                   {isRtl ? 'إضافة معلوماتي' : 'Add my details'}
                 </button>
@@ -416,32 +418,32 @@ const MainAppContent: React.FC<{
           </section>
         )}
 
-        <div className="flex gap-1 rounded-2xl border border-border bg-card p-1.5 lg:hidden">
+        <div className="brand-surface flex gap-1 rounded-2xl p-1.5 lg:hidden">
           <button
             type="button"
             onClick={() => setMobileView('form')}
-            className={`flex-1 rounded-xl py-2 text-xs font-bold ${mobileView === 'form' ? 'bg-[#00B5A5] text-white' : 'text-muted-foreground'}`}
+            className={`flex-1 rounded-xl py-2 text-xs font-bold transition ${mobileView === 'form' ? 'brand-tab-active' : 'text-muted-foreground hover:bg-accent'}`}
           >
             {isRtl ? 'النموذج' : 'Form'}
           </button>
           <button
             type="button"
             onClick={() => setMobileView('preview')}
-            className={`flex-1 rounded-xl py-2 text-xs font-bold ${mobileView === 'preview' ? 'bg-[#00B5A5] text-white' : 'text-muted-foreground'}`}
+            className={`flex-1 rounded-xl py-2 text-xs font-bold transition ${mobileView === 'preview' ? 'brand-tab-active' : 'text-muted-foreground hover:bg-accent'}`}
           >
             {isRtl ? 'المعاينة' : 'Preview'}
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-start">
-          <div className={`${mobileView === 'preview' ? 'hidden lg:block' : 'block'} lg:col-span-5 xl:col-span-4 lg:sticky lg:top-24 space-y-4`}>
-            <div className="bg-card border border-border p-1.5 rounded-2xl shadow-sm flex items-center justify-between gap-1">
+        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12 lg:gap-8">
+          <div className={`${mobileView === 'preview' ? 'hidden lg:block' : 'block'} brand-enter lg:sticky lg:top-24 lg:col-span-5 xl:col-span-4 space-y-4`}>
+            <div className="brand-surface flex items-center justify-between gap-1 rounded-2xl p-1.5">
               <button
                 type="button"
                 onClick={() => setActiveTab('content')}
                 className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
                   activeTab === 'content'
-                    ? 'bg-[#00B5A5] text-white shadow-sm'
+                    ? 'brand-tab-active'
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                 }`}
               >
@@ -454,7 +456,7 @@ const MainAppContent: React.FC<{
                 onClick={() => setActiveTab('design')}
                 className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
                   activeTab === 'design'
-                    ? 'bg-[#00B5A5] text-white shadow-sm'
+                    ? 'brand-tab-active'
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                 }`}
               >
@@ -469,7 +471,7 @@ const MainAppContent: React.FC<{
                 onClick={() => setActiveTab('ats')}
                 className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
                   activeTab === 'ats'
-                    ? 'bg-[#00B5A5] text-white shadow-sm'
+                    ? 'brand-tab-active'
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                 }`}
               >
@@ -480,7 +482,7 @@ const MainAppContent: React.FC<{
 
             {activeTab === 'content' && (
               <div className="space-y-4">
-                {currentCompletion > 0 && <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                {currentCompletion > 0 && <div className="brand-surface rounded-2xl p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h4 className="text-sm font-bold text-foreground">
@@ -492,7 +494,7 @@ const MainAppContent: React.FC<{
                           : 'Upload a PDF or DOCX and fill the current version only after your confirmation.'}
                       </p>
                     </div>
-                    <label className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${isImportingResume ? 'pointer-events-none bg-muted text-muted-foreground' : 'bg-[#00B5A5] text-white hover:bg-[#009f92]'}`}>
+                    <label className={`inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${isImportingResume ? 'pointer-events-none bg-muted text-muted-foreground' : 'brand-action'}`}>
                       {isImportingResume ? (isRtl ? 'جار الاستيراد...' : 'Importing...') : (isRtl ? 'استيراد PDF / DOCX' : 'Import PDF / DOCX')}
                       <input type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleImportResumeFile} className="hidden" disabled={isImportingResume} />
                     </label>
@@ -516,7 +518,7 @@ const MainAppContent: React.FC<{
             {activeTab === 'design' && (
               <div className="space-y-4 animate-fade-in">
                 <TemplateControls options={currentResume.options} setOptions={setTemplateOptions} language={activeLanguage} />
-                <div className="p-4 bg-card rounded-2xl border border-border shadow-sm flex flex-col gap-3">
+                <div className="brand-surface flex flex-col gap-3 rounded-2xl p-4">
                   <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                     {isRtl ? 'النسخ الاحتياطي والاستيراد' : 'Backup & Portability'}
                   </h4>
@@ -547,7 +549,7 @@ const MainAppContent: React.FC<{
             )}
           </div>
 
-          <div className={`${mobileView === 'form' ? 'hidden lg:block' : 'block'} lg:col-span-7 xl:col-span-8`}>
+          <div className={`${mobileView === 'form' ? 'hidden lg:block' : 'block'} brand-enter-delay lg:col-span-7 xl:col-span-8`}>
             <ResumePreview
               data={activeData}
               options={currentResume.options}
@@ -847,13 +849,8 @@ const AppRoot: React.FC = () => {
 
   if (authLoading || (user && dbLoading)) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent dark:border-blue-400 dark:border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm font-bold text-muted-foreground animate-pulse">
-            {isRtl ? 'جار تجهيز مساحة العمل...' : 'Preparing your workspace...'}
-          </span>
-        </div>
+      <div className="workspace-shell grid min-h-screen place-items-center text-gray-800 dark:text-gray-200">
+        <BrandLoader label={isRtl ? 'جار تجهيز مساحة العمل...' : 'Preparing your workspace...'} />
       </div>
     );
   }
@@ -864,11 +861,8 @@ const AppRoot: React.FC = () => {
 
   if (!currentResume) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-        <div className="w-10 h-10 border-4 border-dashed border-blue-500 rounded-full animate-spin" />
-        <span className="text-xs text-muted-foreground mt-4">
-          {isRtl ? 'جار فتح السيرة الذاتية...' : 'Opening resume workspace...'}
-        </span>
+      <div className="workspace-shell grid min-h-screen place-items-center text-gray-800 dark:text-gray-200">
+        <BrandLoader compact label={isRtl ? 'جار فتح السيرة الذاتية...' : 'Opening resume workspace...'} />
       </div>
     );
   }

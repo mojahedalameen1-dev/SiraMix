@@ -354,7 +354,7 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ resumeData, setResumeData, open
               <Section {...commonProps}>
                 <div className="mb-3 flex flex-wrap gap-2" aria-live="polite">
                   {skills.map((skill) => (
-                    <div key={skill.id} className="flex items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-100">
+                    <div key={skill.id} className="flex items-center rounded-full border border-[#67c7a5]/25 bg-[#67c7a5]/10 px-3 py-1 text-sm font-bold text-[#17664f] dark:text-[#83e0bf]">
                       <span>{skill.name}</span>
                       <button
                         onClick={() => setResumeData(prev => ({ ...prev, skills: prev.skills.filter(item => item.id !== skill.id) }))}
@@ -372,7 +372,7 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ resumeData, setResumeData, open
                     type="button"
                     onClick={addSkill}
                     disabled={!skillInput.trim()}
-                    className="shrink-0 rounded-xl bg-[#00B5A5] px-4 text-sm font-black text-white transition hover:bg-[#009f92] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="brand-action shrink-0 rounded-xl px-4 text-sm font-black disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {t('section.addNew')}
                   </button>
@@ -408,13 +408,13 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ resumeData, setResumeData, open
             </select>
             <div className="flex justify-end gap-2">
               <button onClick={() => { setIsAddingSection(false); setNewSectionTitle(''); }} className="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-accent">{t('form.cancel')}</button>
-              <button onClick={handleConfirmAddNewSection} className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!newSectionTitle.trim()}>
+              <button onClick={handleConfirmAddNewSection} className="brand-action rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50" disabled={!newSectionTitle.trim()}>
                 {t('form.addSection')}
               </button>
             </div>
           </div>
         ) : (
-          <button onClick={() => setIsAddingSection(true)} className="flex w-full items-center justify-center rounded-xl border-2 border-dashed border-blue-300 p-3 text-sm font-bold text-blue-600 transition hover:bg-blue-500/10">
+          <button onClick={() => setIsAddingSection(true)} className="flex w-full items-center justify-center rounded-2xl border-2 border-dashed border-[#67c7a5]/60 bg-[#67c7a5]/5 p-3 text-sm font-black text-[#17664f] transition hover:-translate-y-0.5 hover:border-[#ff6b4a]/50 hover:bg-[#ff6b4a]/10 hover:text-[#d84f31] dark:text-[#83e0bf]">
             <PlusIcon /> <span className="mx-2">{t('form.addNewSection')}</span>
           </button>
         )}
