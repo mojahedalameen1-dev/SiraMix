@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">SiraMix mark</title>
+  <desc id="desc">SiraMix logo mark</desc>
+  <rect width="64" height="64" rx="20" fill="#12231e"/>
+  <path d="M19 18h19.333a7.333 7.333 0 0 1 0 14.667H28.333a7.333 7.333 0 0 0 0 14.666H45" fill="none" stroke="#f7f4ec" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="45.333" cy="18" r="6" fill="#ff6b4a"/>
+  <path d="M45.333 38.667V48" fill="none" stroke="#67c7a5" stroke-width="6" stroke-linecap="round"/>
+</svg>
