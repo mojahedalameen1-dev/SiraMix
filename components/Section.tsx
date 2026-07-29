@@ -25,6 +25,8 @@ interface SectionProps<T extends Item> {
   onToggle?: () => void;
   onDelete?: () => void;
   onRename?: (newTitle: string) => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   headerAddon?: React.ReactNode;
   isHighlighted?: boolean;
 }
@@ -43,6 +45,8 @@ const Section = <T extends Item,>({
   onToggle,
   onDelete,
   onRename,
+  onMoveUp,
+  onMoveDown,
   headerAddon,
   isHighlighted = false,
 }: SectionProps<T>) => {
@@ -127,7 +131,7 @@ const Section = <T extends Item,>({
       setIsEditingTitle(true);
   }
 
-  const HeaderContent = () => (
+  const renderHeaderContent = () => (
     <>
       {isDraggable && <span className={isCollapsible ? "" : "cursor-grab"}><DragHandleIcon /></span>}
       <div className="flex-grow text-start mx-2">
@@ -148,6 +152,28 @@ const Section = <T extends Item,>({
       </div>
       {headerAddon && <div className="ms-auto ps-2">{headerAddon}</div>}
       <div className="flex items-center space-x-1 ps-2 opacity-100 transition-opacity duration-200 rtl:space-x-reverse sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+          {onMoveUp && (
+              <button
+                  type="button"
+                  onClick={(event) => { event.stopPropagation(); onMoveUp(); }}
+                  className="rounded-full p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  aria-label={language === 'ar' ? 'تحريك القسم للأعلى' : 'Move section up'}
+                  title={language === 'ar' ? 'تحريك القسم للأعلى' : 'Move section up'}
+              >
+                  <span aria-hidden="true">↑</span>
+              </button>
+          )}
+          {onMoveDown && (
+              <button
+                  type="button"
+                  onClick={(event) => { event.stopPropagation(); onMoveDown(); }}
+                  className="rounded-full p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  aria-label={language === 'ar' ? 'تحريك القسم للأسفل' : 'Move section down'}
+                  title={language === 'ar' ? 'تحريك القسم للأسفل' : 'Move section down'}
+              >
+                  <span aria-hidden="true">↓</span>
+              </button>
+          )}
           {isEditable && onRename && (
               <button
                   type="button"
@@ -192,11 +218,11 @@ const Section = <T extends Item,>({
           aria-controls={contentId}
           className={`flex w-full cursor-pointer items-center p-4 text-base font-black text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset ${isOpen ? 'border-b border-[#67c7a5]/20 bg-[#67c7a5]/5' : 'hover:bg-[#67c7a5]/5'}`}
         >
-          <HeaderContent />
+          {renderHeaderContent()}
         </div>
       ) : (
         <h3 className={`flex items-center text-lg font-semibold text-foreground p-4 border-b border-border ${isDraggable ? 'cursor-grab' : ''}`}>
-          <HeaderContent />
+          {renderHeaderContent()}
         </h3>
       )}
       

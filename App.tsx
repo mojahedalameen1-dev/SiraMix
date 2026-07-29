@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
-import { ARABIC_FONT_FAMILIES, DEFAULT_DUAL_RESUME_DATA, DEFAULT_TEMPLATE_OPTIONS, ENGLISH_FONT_FAMILIES } from './constants';
+import { ARABIC_FONT_FAMILIES, DEFAULT_DUAL_RESUME_DATA, DEFAULT_TEMPLATE_OPTIONS, ENGLISH_FONT_FAMILIES, FONT_FAMILIES, TEMPLATES } from './constants';
 import { AuthProvider, AuthUser, useAuth } from './components/AuthContext';
 import { Login } from './components/Login';
 import Header, { SaveStatus } from './components/Header';
@@ -12,6 +12,7 @@ import { AtsAnalysis } from './components/AtsAnalysis';
 import { PencilIcon } from './components/icons/PencilIcon';
 import { TargetIcon } from './components/icons/TargetIcon';
 import { BrandLoader } from './components/BrandLoader';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { LanguageProvider, useLanguage } from './i18n';
 import { resumeService } from './services/resumeService';
 import { extractResumeTextFromFile, getFirstImportedSection, importResumeTextIntoData } from './services/resumeImportService';
@@ -69,9 +70,15 @@ function isTemplateOptions(value: unknown): value is TemplateOptions {
 
   return (
     typeof value.accentColor === 'string' &&
+    /^#[0-9a-f]{6}$/i.test(value.accentColor) &&
     typeof value.fontFamily === 'string' &&
+    FONT_FAMILIES.some(font => font.value === value.fontFamily) &&
     typeof value.fontSize === 'string' &&
-    typeof value.template === 'string'
+    ['9pt', '10pt', '11pt', '12pt'].includes(value.fontSize) &&
+    typeof value.template === 'string' &&
+    TEMPLATES.some(template => template.id === value.template) &&
+    (value.lineSpacing === undefined || ['compact', 'normal', 'spacious'].includes(String(value.lineSpacing))) &&
+    (value.marginSize === undefined || ['compact', 'normal', 'wide'].includes(String(value.marginSize)))
   );
 }
 
@@ -158,12 +165,25 @@ const MainAppContent: React.FC<{
   const currentCompletion = getResumeCompletion(activeData);
   const otherCompletion = getResumeCompletion(inactiveData);
 
-  useEffect(() => {
-    const availableFonts = activeLanguage === 'ar' ? ARABIC_FONT_FAMILIES : ENGLISH_FONT_FAMILIES;
-    if (!availableFonts.some(font => font.value === currentResume.options.fontFamily)) {
-      setTemplateOptions({ ...currentResume.options, fontFamily: availableFonts[0].value });
-    }
-  }, [activeLanguage, currentResume.options, setTemplateOptions]);
+  const availableFonts = activeLanguage === 'ar' ? ARABIC_FONT_FAMILIES : ENGLISH_FONT_FAMILIES;
+  const activeFont = currentResume.options.fontFamilyByLanguage?.[activeLanguage]
+    || currentResume.options.fontFamily;
+  const effectiveOptions = {
+    ...currentResume.options,
+    fontFamily: availableFonts.some(font => font.value === activeFont)
+      ? activeFont
+      : availableFonts[0].value,
+  };
+
+  const handleTemplateOptionsChange = (options: TemplateOptions) => {
+    setTemplateOptions({
+      ...options,
+      fontFamilyByLanguage: {
+        ...currentResume.options.fontFamilyByLanguage,
+        [activeLanguage]: options.fontFamily,
+      },
+    });
+  };
 
   const openEditorSection = (section: string) => {
     setActiveTab('content');
@@ -203,10 +223,7 @@ const MainAppContent: React.FC<{
           sectionOrder: [...source.sectionOrder],
           sectionTitles: { ...source.sectionTitles },
           sectionTypes: { ...source.sectionTypes },
-          customSectionsData: {
-            ...target.customSectionsData,
-            ...customSectionsData,
-          },
+          customSectionsData,
         },
       };
     });
@@ -517,7 +534,7 @@ const MainAppContent: React.FC<{
 
             {activeTab === 'design' && (
               <div className="space-y-4 animate-fade-in">
-                <TemplateControls options={currentResume.options} setOptions={setTemplateOptions} language={activeLanguage} />
+                <TemplateControls options={effectiveOptions} setOptions={handleTemplateOptionsChange} language={activeLanguage} />
                 <div className="brand-surface flex flex-col gap-3 rounded-2xl p-4">
                   <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                     {isRtl ? 'النسخ الاحتياطي والاستيراد' : 'Backup & Portability'}
@@ -552,7 +569,7 @@ const MainAppContent: React.FC<{
           <div className={`${mobileView === 'form' ? 'hidden lg:block' : 'block'} brand-enter-delay lg:col-span-7 xl:col-span-8`}>
             <ResumePreview
               data={activeData}
-              options={currentResume.options}
+              options={effectiveOptions}
               sourceDocument={currentResume.sourceDocument}
               setOptions={setTemplateOptions}
               onOpenLongestSection={() => openEditorSection(getLongestSectionKey(activeData))}
@@ -578,6 +595,17 @@ const AppRoot: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
   const profileHydratedRef = useRef(false);
+  const resumesRef = useRef<Resume[]>([]);
+  const activeResumeIdRef = useRef('');
+  const creatingResumeRef = useRef(false);
+
+  useEffect(() => {
+    resumesRef.current = resumes;
+  }, [resumes]);
+
+  useEffect(() => {
+    activeResumeIdRef.current = activeResumeId;
+  }, [activeResumeId]);
 
   useEffect(() => {
     if (!user) {
@@ -634,7 +662,25 @@ const AppRoot: React.FC = () => {
     };
 
     initUserData();
-  }, [isRtl, setLanguage, user]);
+  }, [user?.id]);
+
+  useEffect(() => {
+    const flushPendingSaves = () => {
+      void resumeService.flushAll().catch(error => {
+        console.error('Could not flush pending resume saves:', error);
+      });
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') flushPendingSaves();
+    };
+
+    window.addEventListener('pagehide', flushPendingSaves);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('pagehide', flushPendingSaves);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -665,87 +711,111 @@ const AppRoot: React.FC = () => {
   }, [resumes, activeResumeId]);
 
   const handleSetActiveResumeId = useCallback((id: string) => {
+    const previousId = activeResumeIdRef.current;
+    if (user && profileHydratedRef.current && previousId && previousId !== id) {
+      void resumeService.flushResume(user.id, previousId).catch(error => {
+        console.error('Could not flush resume before switching:', error);
+      });
+    }
+    activeResumeIdRef.current = id;
     setActiveResumeId(id);
-    if (user) {
+    if (user && profileHydratedRef.current) {
       resumeService.upsertProfile({ id: user.id, active_resume_id: id })
         .catch(err => console.error('Error saving active resume profile:', err));
+    } else {
+      localStorage.setItem('activeResumeId', id);
     }
   }, [user]);
 
   const setResumeData = (updater: React.SetStateAction<DualResumeData>) => {
     setSaveStatus('saving');
-    setResumes(prevResumes => {
-      const updated = prevResumes.map(resume => {
-        if (resume.id !== activeResumeId) return resume;
-        const nextData = typeof updater === 'function' ? updater(resume.data) : updater;
-        return { ...resume, data: nextData };
-      });
-
-      const currentActive = updated.find(resume => resume.id === activeResumeId);
-      if (currentActive && user) {
-        resumeService.updateResumeDebounced(user.id, activeResumeId, { data: currentActive.data })
-          .then(() => setSaveStatus('saved'))
-          .catch(err => {
-            console.error('Error during data debounce save:', err);
-            setSaveStatus('error');
-          });
-      } else {
-        localStorage.setItem('resumes', JSON.stringify(updated));
-        setSaveStatus('saved');
-      }
-
-      return updated;
+    const resumeId = activeResumeIdRef.current;
+    const updated = resumesRef.current.map(resume => {
+      if (resume.id !== resumeId) return resume;
+      const nextData = typeof updater === 'function' ? updater(resume.data) : updater;
+      return { ...resume, data: nextData };
     });
+    resumesRef.current = updated;
+    setResumes(updated);
+    const currentActive = updated.find(resume => resume.id === resumeId);
+    if (currentActive && user && profileHydratedRef.current) {
+      resumeService.updateResumeDebounced(user.id, resumeId, { data: currentActive.data })
+        .then(() => setSaveStatus('saved'))
+        .catch(err => {
+          console.error('Error during data debounce save:', err);
+          setSaveStatus('error');
+        });
+    } else {
+      localStorage.setItem('resumes', JSON.stringify(updated));
+      setSaveStatus('saved');
+    }
   };
 
   const setTemplateOptions = (options: TemplateOptions) => {
     setSaveStatus('saving');
-    setResumes(prev => {
-      const updated = prev.map(resume => resume.id === activeResumeId ? { ...resume, options } : resume);
-      if (user) {
-        resumeService.updateResumeDebounced(user.id, activeResumeId, { options })
-          .then(() => setSaveStatus('saved'))
-          .catch(err => {
-            console.error('Error saving template options:', err);
-            setSaveStatus('error');
-          });
-      } else {
-        localStorage.setItem('resumes', JSON.stringify(updated));
-        setSaveStatus('saved');
-      }
-      return updated;
-    });
+    const resumeId = activeResumeIdRef.current;
+    const updated = resumesRef.current.map(resume =>
+      resume.id === resumeId ? { ...resume, options } : resume,
+    );
+    resumesRef.current = updated;
+    setResumes(updated);
+    if (user && profileHydratedRef.current) {
+      resumeService.updateResumeDebounced(user.id, resumeId, { options })
+        .then(() => setSaveStatus('saved'))
+        .catch(err => {
+          console.error('Error saving template options:', err);
+          setSaveStatus('error');
+        });
+    } else {
+      localStorage.setItem('resumes', JSON.stringify(updated));
+      setSaveStatus('saved');
+    }
   };
 
   const setSourceDocument = (sourceDocument: SourceDocument | null) => {
     setSaveStatus('saving');
-    setResumes(prev => {
-      const updated = prev.map(resume =>
-        resume.id === activeResumeId ? { ...resume, sourceDocument } : resume,
-      );
-
-      if (user) {
-        resumeService.updateResumeImmediate(user.id, activeResumeId, { sourceDocument })
-          .then(() => setSaveStatus('saved'))
-          .catch(err => {
-            console.error('Error saving source document metadata:', err);
-            setSaveStatus('error');
-          });
-      }
-
-      return updated;
-    });
+    const resumeId = activeResumeIdRef.current;
+    const updated = resumesRef.current.map(resume =>
+      resume.id === resumeId ? { ...resume, sourceDocument } : resume,
+    );
+    resumesRef.current = updated;
+    setResumes(updated);
+    if (user && profileHydratedRef.current) {
+      resumeService.updateResumeImmediate(user.id, resumeId, { sourceDocument })
+        .then(() => setSaveStatus('saved'))
+        .catch(err => {
+          console.error('Error saving source document metadata:', err);
+          setSaveStatus('error');
+        });
+    } else {
+      localStorage.setItem('resumes', JSON.stringify(updated));
+      setSaveStatus('saved');
+    }
   };
 
   const retrySave = () => {
     if (!user || !currentResume) return;
 
     setSaveStatus('saving');
-    resumeService.updateResumeImmediate(user.id, currentResume.id, {
-      name: currentResume.name,
-      data: currentResume.data,
-      options: currentResume.options,
-    })
+    const savePromise = profileHydratedRef.current
+      ? resumeService.updateResumeImmediate(user.id, currentResume.id, {
+          name: currentResume.name,
+          data: currentResume.data,
+          options: currentResume.options,
+        })
+      : resumeService.createResume(user.id, currentResume)
+          .then(() => resumeService.upsertProfile({
+            id: user.id,
+            active_resume_id: currentResume.id,
+            theme,
+            language,
+          }))
+          .then(() => {
+            profileHydratedRef.current = true;
+            localStorage.removeItem('resumes');
+            localStorage.removeItem('activeResumeId');
+          });
+    savePromise
       .then(() => {
         setSaveStatus('saved');
         toast.success(isRtl ? 'تمت إعادة المحاولة والحفظ بنجاح.' : 'Retry saved successfully.');
@@ -758,26 +828,27 @@ const AppRoot: React.FC = () => {
   };
 
   const addResume = async () => {
-    const newResume = createNewResumeObj(resumes);
+    if (creatingResumeRef.current) return;
+    creatingResumeRef.current = true;
+    const newResume = createNewResumeObj(resumesRef.current);
     try {
-      if (user) {
+      if (user && profileHydratedRef.current) {
         await resumeService.createResume(user.id, newResume);
       }
-      setResumes(prev => [...prev, newResume]);
+      const updated = [...resumesRef.current, newResume];
+      resumesRef.current = updated;
+      setResumes(updated);
       handleSetActiveResumeId(newResume.id);
       toast.success(isRtl ? 'تم إنشاء سيرة ذاتية جديدة.' : 'New resume created.');
     } catch (err) {
       console.error('Failed to create resume:', err);
       toast.error(isRtl ? 'تعذر إنشاء السيرة الجديدة.' : 'Failed to create the new resume.');
+    } finally {
+      creatingResumeRef.current = false;
     }
   };
 
   const deleteResume = async (id: string) => {
-    if (resumes.length <= 1) {
-      toast.error(isRtl ? 'لا يمكن حذف آخر سيرة ذاتية في الحساب.' : "You can't delete your last resume.");
-      return;
-    }
-
     toast(toastInstance => (
       <div className="flex flex-col items-center p-4 bg-card rounded-2xl shadow-lg ring-1 ring-border text-start">
         <p className="text-center font-semibold mb-2 text-card-foreground">
@@ -799,19 +870,22 @@ const AppRoot: React.FC = () => {
             onClick={async () => {
               try {
                 toast.dismiss(toastInstance.id);
-                if (user) {
-                  const resumeToDelete = resumes.find(resume => resume.id === id);
-                  if (resumeToDelete?.sourceDocument) {
-                    await sourceDocumentService.remove(resumeToDelete.sourceDocument).catch(error => {
-                      console.warn('Could not remove source PDF from storage:', error);
-                    });
-                  }
-                  await resumeService.deleteResume(user.id, id);
+                const resumeToDelete = resumesRef.current.find(resume => resume.id === id);
+                if (!resumeToDelete) return;
+                let nextResumes = resumesRef.current.filter(resume => resume.id !== id);
+                const replacement = nextResumes.length === 0 ? createNewResumeObj([]) : undefined;
+                if (replacement) nextResumes = [replacement];
+                const nextActiveId = activeResumeIdRef.current === id
+                  ? nextResumes[0].id
+                  : activeResumeIdRef.current;
+                if (user && profileHydratedRef.current) {
+                  await resumeService.deleteResume(user.id, resumeToDelete, nextActiveId, replacement);
                 }
-                const nextResumes = resumes.filter(resume => resume.id !== id);
+                resumesRef.current = nextResumes;
                 setResumes(nextResumes);
-                if (activeResumeId === id) {
-                  handleSetActiveResumeId(nextResumes[0].id);
+                if (activeResumeIdRef.current === id) {
+                  activeResumeIdRef.current = nextActiveId;
+                  setActiveResumeId(nextActiveId);
                 }
                 toast.success(isRtl ? 'تم حذف السيرة الذاتية.' : 'Resume deleted.');
               } catch (err) {
@@ -830,9 +904,10 @@ const AppRoot: React.FC = () => {
 
   const renameResume = (id: string, newName: string) => {
     setSaveStatus('saving');
-    setResumes(prev => {
-      const updated = prev.map(resume => resume.id === id ? { ...resume, name: newName } : resume);
-      if (user) {
+    const updated = resumesRef.current.map(resume => resume.id === id ? { ...resume, name: newName } : resume);
+    resumesRef.current = updated;
+    setResumes(updated);
+      if (user && profileHydratedRef.current) {
         resumeService.updateResumeDebounced(user.id, id, { name: newName })
           .then(() => setSaveStatus('saved'))
           .catch(err => {
@@ -843,8 +918,14 @@ const AppRoot: React.FC = () => {
         localStorage.setItem('resumes', JSON.stringify(updated));
         setSaveStatus('saved');
       }
-      return updated;
-    });
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await resumeService.flushAll();
+    } finally {
+      await signOut();
+    }
   };
 
   if (authLoading || (user && dbLoading)) {
@@ -882,7 +963,7 @@ const AppRoot: React.FC = () => {
       deleteResume={deleteResume}
       renameResume={renameResume}
       user={user}
-      signOut={signOut}
+      signOut={handleSignOut}
       saveStatus={saveStatus}
       onRetrySave={retrySave}
     />
@@ -891,11 +972,13 @@ const AppRoot: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <LanguageProvider>
-        <AppRoot />
-      </LanguageProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <LanguageProvider>
+          <AppRoot />
+        </LanguageProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 

@@ -1,6 +1,5 @@
 import {
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -22,11 +21,40 @@ export interface UserProfile {
 const updateTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 const pendingUpdates: Record<string, Partial<Resume>> = {};
 const pendingWaiters: Record<string, Array<{ resolve: () => void; reject: (error: unknown) => void }>> = {};
+const pendingOwners: Record<string, { userId: string; resumeId: string }> = {};
 
 const userRef = (userId: string) => doc(db, 'users', userId);
 const profileRef = (userId: string) => doc(db, 'users', userId, 'settings', 'profile');
 const resumeRef = (userId: string, resumeId: string) =>
   doc(db, 'users', userId, 'resumes', resumeId);
+const updateKey = (userId: string, resumeId: string) => `${userId}:${resumeId}`;
+
+const settlePendingUpdate = async (key: string): Promise<void> => {
+  if (updateTimers[key]) {
+    clearTimeout(updateTimers[key]);
+    delete updateTimers[key];
+  }
+
+  const updates = pendingUpdates[key];
+  const owner = pendingOwners[key];
+  const waiters = pendingWaiters[key] || [];
+  delete pendingUpdates[key];
+  delete pendingOwners[key];
+  delete pendingWaiters[key];
+
+  if (!updates || !owner) {
+    waiters.forEach(waiter => waiter.resolve());
+    return;
+  }
+
+  try {
+    await resumeService.updateResumeImmediate(owner.userId, owner.resumeId, updates);
+    waiters.forEach(waiter => waiter.resolve());
+  } catch (error) {
+    waiters.forEach(waiter => waiter.reject(error));
+    throw error;
+  }
+};
 
 export const resumeService = {
   async getProfile(userId: string): Promise<UserProfile> {
@@ -121,43 +149,69 @@ export const resumeService = {
     resumeId: string,
     updates: Partial<Resume>,
   ): Promise<void> {
+    const key = updateKey(userId, resumeId);
     return new Promise((resolve, reject) => {
-      pendingUpdates[resumeId] = {
-        ...pendingUpdates[resumeId],
+      pendingUpdates[key] = {
+        ...pendingUpdates[key],
         ...updates,
       };
-      pendingWaiters[resumeId] = [
-        ...(pendingWaiters[resumeId] || []),
+      pendingOwners[key] = { userId, resumeId };
+      pendingWaiters[key] = [
+        ...(pendingWaiters[key] || []),
         { resolve, reject },
       ];
 
-      if (updateTimers[resumeId]) clearTimeout(updateTimers[resumeId]);
-      updateTimers[resumeId] = setTimeout(async () => {
-        delete updateTimers[resumeId];
-        const mergedUpdates = pendingUpdates[resumeId] || {};
-        const waiters = pendingWaiters[resumeId] || [];
-        delete pendingUpdates[resumeId];
-        delete pendingWaiters[resumeId];
-        try {
-          await this.updateResumeImmediate(userId, resumeId, mergedUpdates);
-          waiters.forEach(waiter => waiter.resolve());
-        } catch (error) {
-          waiters.forEach(waiter => waiter.reject(error));
-        }
+      if (updateTimers[key]) clearTimeout(updateTimers[key]);
+      updateTimers[key] = setTimeout(() => {
+        void settlePendingUpdate(key).catch(() => undefined);
       }, 400);
     });
   },
 
-  async deleteResume(userId: string, resumeId: string): Promise<void> {
-    if (updateTimers[resumeId]) {
-      clearTimeout(updateTimers[resumeId]);
-      delete updateTimers[resumeId];
+  async flushResume(userId: string, resumeId: string): Promise<void> {
+    await settlePendingUpdate(updateKey(userId, resumeId));
+  },
+
+  async flushAll(): Promise<void> {
+    await Promise.all(Object.keys(pendingUpdates).map(key => settlePendingUpdate(key)));
+  },
+
+  async deleteResume(
+    userId: string,
+    resume: Resume,
+    nextActiveResumeId: string | null,
+    replacement?: Resume,
+  ): Promise<void> {
+    await this.flushResume(userId, resume.id);
+
+    const batch = writeBatch(db);
+    batch.delete(resumeRef(userId, resume.id));
+
+    if (resume.sourceDocument) {
+      const sourceRef = doc(db, resume.sourceDocument.storagePath);
+      for (let index = 0; index < resume.sourceDocument.chunkCount; index += 1) {
+        batch.delete(doc(sourceRef, 'chunks', String(index).padStart(4, '0')));
+      }
+      batch.delete(sourceRef);
     }
-    delete pendingUpdates[resumeId];
-    const waiters = pendingWaiters[resumeId] || [];
-    delete pendingWaiters[resumeId];
-    waiters.forEach(waiter => waiter.resolve());
-    await deleteDoc(resumeRef(userId, resumeId));
+
+    if (replacement) {
+      batch.set(resumeRef(userId, replacement.id), {
+        name: replacement.name,
+        data: replacement.data,
+        options: replacement.options,
+        sourceDocument: replacement.sourceDocument || null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    batch.set(userRef(userId), { updatedAt: serverTimestamp() }, { merge: true });
+    batch.set(profileRef(userId), {
+      active_resume_id: replacement?.id || nextActiveResumeId,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    await batch.commit();
   },
 
   async migrateLocalStorageData(userId: string): Promise<{

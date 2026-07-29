@@ -9,7 +9,7 @@
     "start": "node dist/server.cjs",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "test": "npm run typecheck"
+    "test": "npm run typecheck && tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "express": "^5.2.1",

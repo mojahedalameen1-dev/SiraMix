@@ -2,14 +2,56 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, create, update, delete: if request.auth != null
-        && request.auth.uid == userId;
+    function owns(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
 
-      match /{document=**} {
-        allow read, create, update, delete: if request.auth != null
-          && request.auth.uid == userId;
+    match /users/{userId} {
+      allow read, create, update, delete: if owns(userId);
+
+      match /settings/profile {
+        allow read, delete: if owns(userId);
+        allow create, update: if owns(userId)
+          && request.resource.data.theme in ['light', 'dark']
+          && request.resource.data.language in ['en', 'ar']
+          && (request.resource.data.active_resume_id == null
+            || request.resource.data.active_resume_id is string);
       }
+
+      match /resumes/{resumeId} {
+        allow read, delete: if owns(userId);
+        allow create, update: if owns(userId)
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 120
+          && request.resource.data.data is map
+          && request.resource.data.options is map
+          && request.resource.data.options.template is string
+          && request.resource.data.options.accentColor is string;
+
+        match /sourceFiles/{sourceId} {
+          allow read, delete: if owns(userId);
+          allow create, update: if owns(userId)
+            && request.resource.data.name is string
+            && request.resource.data.name.size() <= 255
+            && request.resource.data.mimeType == 'application/pdf'
+            && request.resource.data.size is int
+            && request.resource.data.size <= 15728640
+            && request.resource.data.chunkCount is int
+            && request.resource.data.chunkCount <= 22;
+
+          match /chunks/{chunkId} {
+            allow read, delete: if owns(userId);
+            allow create, update: if owns(userId)
+              && request.resource.data.index is int
+              && request.resource.data.index >= 0
+              && request.resource.data.index < 22
+              && request.resource.data.bytes is bytes
+              && request.resource.data.bytes.size() <= 716800;
+          }
+        }
+      }
+
     }
 
     match /{document=**} {

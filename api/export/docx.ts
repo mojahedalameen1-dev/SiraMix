@@ -1,9 +1,11 @@
 import htmlToDocx from 'html-to-docx';
 import { finalizeDocx } from '../../services/docxPostprocess.js';
+import { verifyFirebaseIdToken } from '../../services/firebaseTokenVerification.js';
 
 interface VercelRequestLike {
   method?: string;
   body?: unknown;
+  headers?: Record<string, string | string[] | undefined>;
 }
 
 interface VercelResponseLike {
@@ -33,6 +35,18 @@ const DEFAULT_DOCX_MARGINS = {
   footer: 720,
   gutter: 0,
 };
+const requestWindows = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const current = requestWindows.get(key);
+  if (!current || current.resetAt <= now) {
+    requestWindows.set(key, { count: 1, resetAt: now + 60_000 });
+    return false;
+  }
+  current.count += 1;
+  return current.count > 10;
+}
 
 function toPositiveNumber(value: unknown, fallback: number) {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
@@ -60,6 +74,17 @@ export default async function handler(req: VercelRequestLike, res: VercelRespons
   }
 
   try {
+    const authorization = req.headers?.authorization;
+    const authHeader = Array.isArray(authorization) ? authorization[0] : authorization;
+    if (!await verifyFirebaseIdToken(authHeader)) {
+      return res.status(401).json({ error: 'Authentication required.' });
+    }
+    const forwardedFor = req.headers?.['x-forwarded-for'];
+    const requestKey = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor || 'unknown';
+    if (isRateLimited(requestKey)) {
+      return res.status(429).json({ error: 'Too many export requests.' });
+    }
+
     const body = req.body as DocxExportRequest;
     if (typeof body?.html !== 'string' || body.html.length < 20 || body.html.length > 5_000_000) {
       return res.status(400).json({ error: 'Invalid document HTML.' });

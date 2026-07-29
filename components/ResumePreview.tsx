@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import { getFontFamilyOption } from '../constants';
 import { useTranslation } from '../i18n';
 import { buildDocxHtml } from '../services/docxTemplate';
+import { auth } from '../firebaseClient';
 import { sourceDocumentService } from '../services/sourceDocumentService';
 import { ResumeData, SourceDocument, TemplateOptions } from '../types';
 import { OriginalPdfPreview } from './OriginalPdfPreview';
@@ -246,10 +247,15 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, sou
     const sourceHTML = buildDocxHtml(data, options, language);
 
     await waitForFonts();
+    const idToken = await auth.currentUser?.getIdToken();
+    if (!idToken) throw new Error('Authentication required');
     const margin = marginBySize[options.marginSize || 'normal'];
     const response = await fetch('/api/export/docx', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
       body: JSON.stringify({
         html: sourceHTML,
         fileName,
@@ -331,8 +337,8 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, options, sou
         </div>
       )}
 
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex-grow">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-end">
+        <div className="hidden" aria-hidden="true">
           {viewMode === 'original' && sourceDocument ? (
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-2 text-xs font-black text-emerald-700 dark:text-emerald-300">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />

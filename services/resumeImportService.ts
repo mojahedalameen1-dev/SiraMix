@@ -293,7 +293,7 @@ function upsertImportedListSection(
 
   data.sectionTypes[sectionKey] = sectionType;
   data.sectionTitles[sectionKey] = title;
-  data.customSectionsData[sectionKey] = values.slice(0, 30).map(value => {
+  data.customSectionsData[sectionKey] = values.map(value => {
     const [primaryText, secondaryText = ''] = value.split(/\s+[-–—:|]\s+/).map(part => part.trim());
     return {
       id: crypto.randomUUID(),
@@ -329,7 +329,7 @@ function applyParsedText(current: ResumeData, parsed: ParsedResumeText): ResumeD
   }
 
   if (sectionExists(current, 'experience') && parsed.sections.experience) {
-    next.experience = splitEntries(parsed.sections.experience).slice(0, 8).map(block => {
+    next.experience = splitEntries(parsed.sections.experience).map(block => {
       const entry = parseEntryBlock(block);
       return {
         id: crypto.randomUUID(),
@@ -343,7 +343,7 @@ function applyParsedText(current: ResumeData, parsed: ParsedResumeText): ResumeD
   }
 
   if (sectionExists(current, 'education') && parsed.sections.education) {
-    next.education = splitEntries(parsed.sections.education).slice(0, 6).map(block => {
+    next.education = splitEntries(parsed.sections.education).map(block => {
       const entry = parseEntryBlock(block);
       return {
         id: crypto.randomUUID(),
@@ -358,7 +358,6 @@ function applyParsedText(current: ResumeData, parsed: ParsedResumeText): ResumeD
 
   if (sectionExists(current, 'skills') && parsed.sections.skills) {
     const skillItems = parseSkillsBlock(parsed.sections.skills)
-      .slice(0, 40)
       .map(name => ({ id: crypto.randomUUID(), name }));
 
     if (skillItems.length) {

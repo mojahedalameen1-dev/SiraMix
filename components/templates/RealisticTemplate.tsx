@@ -167,7 +167,7 @@ const RealisticTemplate = forwardRef<HTMLDivElement, TemplateProps>(({ data, opt
     <section className={sectionGap}>
       <SectionTitle>{titleFor('skills')}</SectionTitle>
       <div className={compact ? 'space-y-1' : 'grid grid-cols-2 gap-x-4 gap-y-1'}>
-        {skills.slice(0, compact ? 16 : 22).map(skill => (
+        {skills.map(skill => (
           <div key={skill.id} className="flex items-center justify-between gap-2 border-b border-gray-100 py-0.5 text-[9.3px] font-bold text-gray-700">
             <span>{skill.name}</span>
             {(variant === 'blue-analyst' || variant === 'minimal-technical') && (
@@ -186,7 +186,7 @@ const RealisticTemplate = forwardRef<HTMLDivElement, TemplateProps>(({ data, opt
       <section key={key} className={sectionGap}>
         <SectionTitle>{titleFor(key)}</SectionTitle>
         <div className="space-y-2">
-          {items.slice(0, 5).map(item => (
+          {items.map(item => (
             <div key={item.id}>
               <div className="flex justify-between gap-2">
                 <h4 className="text-[10px] font-black text-gray-900">{item.primaryText}</h4>
@@ -224,17 +224,6 @@ const RealisticTemplate = forwardRef<HTMLDivElement, TemplateProps>(({ data, opt
     <aside className="space-y-4">
       {renderSkills(true)}
       {remainingSections.map(renderCustom)}
-      {variant === 'emerald-two-column' && (
-        <section>
-          <SectionTitle>{isRtl ? 'نمط العمل' : 'How I Spend Time'}</SectionTitle>
-          <div className="mx-auto grid h-28 w-28 place-items-center rounded-full" style={{ background: `conic-gradient(${accent} 0 42%, #bfead3 42% 70%, #e5e7eb 70%)` }}>
-            <div className="h-12 w-12 rounded-full bg-white" />
-          </div>
-          <ol className="mt-2 space-y-1 text-[8.5px] font-semibold text-gray-700">
-            {['Writing code', 'Education', 'Architecture', 'Mentoring'].map((item, index) => <li key={item}>{index + 1}. {item}</li>)}
-          </ol>
-        </section>
-      )}
     </aside>
   );
 
@@ -250,7 +239,7 @@ const RealisticTemplate = forwardRef<HTMLDivElement, TemplateProps>(({ data, opt
 
   let body: React.ReactNode;
   if (config.layout === 'single') {
-    body = <main>{mainSections}<div className="grid grid-cols-2 gap-4">{remainingSections.map(renderCustom)}</div></main>;
+    body = <main>{mainSections}</main>;
   } else if (config.layout === 'centered' || config.layout === 'minimal') {
     body = <main>{mainSections}</main>;
   } else {

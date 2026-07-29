@@ -15,6 +15,7 @@ interface ResumeFormProps {
 }
 
 type Field = { key: keyof CustomSectionItem; placeholderKey: string; placeholder: string; type: 'input' | 'textarea' };
+const BUILT_IN_SECTIONS = ['summary', 'experience', 'education', 'skills'] as const;
 type FieldGroup = Field[];
 type FieldLayout = (Field | FieldGroup)[];
 
@@ -80,17 +81,31 @@ const FormTextarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> 
   />
 );
 
-function sectionCompletion(sectionKey: string, data: ResumeData): number {
+export function sectionCompletion(sectionKey: string, data: ResumeData): number {
   if (sectionKey === 'personalInfo') {
     const fields = [data.personalInfo.name, data.personalInfo.title, data.personalInfo.email, data.personalInfo.phone, data.personalInfo.location];
     return Math.round((fields.filter(Boolean).length / fields.length) * 100);
   }
   if (sectionKey === 'summary') return data.summary.trim().split(/\s+/).filter(Boolean).length >= 30 ? 100 : data.summary.trim() ? 50 : 0;
-  if (sectionKey === 'experience') return data.experience.length ? Math.min(100, data.experience.length * 50) : 0;
-  if (sectionKey === 'education') return data.education.length ? 100 : 0;
-  if (sectionKey === 'skills') return Math.min(100, Math.round((data.skills.length / 6) * 100));
+  if (sectionKey === 'experience') {
+    const validItems = data.experience.filter(item =>
+      [item.title, item.company, item.description].some(value => value.trim()),
+    );
+    return validItems.length ? Math.min(100, validItems.length * 50) : 0;
+  }
+  if (sectionKey === 'education') {
+    return data.education.some(item =>
+      [item.degree, item.institution, item.description].some(value => value.trim()),
+    ) ? 100 : 0;
+  }
+  if (sectionKey === 'skills') {
+    const validSkills = data.skills.filter(skill => skill.name.trim());
+    return Math.min(100, Math.round((validSkills.length / 6) * 100));
+  }
   const items = data.customSectionsData[sectionKey] || [];
-  return items.length ? 100 : 0;
+  return items.some(item =>
+    [item.primaryText, item.secondaryText, item.description].some(value => value.trim()),
+  ) ? 100 : 0;
 }
 
 const CompletionBadge: React.FC<{ value: number }> = ({ value }) => {
@@ -111,6 +126,7 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ resumeData, setResumeData, open
   const [newSectionTitle, setNewSectionTitle] = useState('');
   const [newSectionType, setNewSectionType] = useState<CustomSectionType>('default');
   const { t } = useTranslation();
+  const hiddenBuiltInSections = BUILT_IN_SECTIONS.filter(section => !sectionOrder.includes(section));
 
   const missingPersonalFields = useMemo(() => {
     const fields = [
@@ -171,6 +187,7 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ resumeData, setResumeData, open
   };
 
   const handleDeleteSection = (sectionKey: string) => {
+    const isCustom = sectionKey.startsWith('custom_');
     toast((toastInstance) => (
       <div className="flex flex-col items-center rounded-xl bg-card p-4 shadow-lg ring-1 ring-border">
         <p className="mb-2 text-center font-semibold text-card-foreground">{t('form.deleteSectionTitle')} "{sectionTitles[sectionKey] || t(`form.${sectionKey}`)}"?</p>
@@ -185,9 +202,11 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ resumeData, setResumeData, open
                 const newCustomData = { ...prev.customSectionsData };
                 const newTitles = { ...prev.sectionTitles };
                 const newTypes = { ...prev.sectionTypes };
-                delete newCustomData[sectionKey];
-                delete newTitles[sectionKey];
-                delete newTypes[sectionKey];
+                if (isCustom) {
+                  delete newCustomData[sectionKey];
+                  delete newTitles[sectionKey];
+                  delete newTypes[sectionKey];
+                }
                 return {
                   ...prev,
                   sectionOrder: prev.sectionOrder.filter(key => key !== sectionKey),
@@ -228,6 +247,24 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ resumeData, setResumeData, open
 
   const getSectionTitle = (sectionKey: string) => sectionTitles[sectionKey] || t(`form.${sectionKey}`, {}, sectionKey);
 
+  const moveSection = (index: number, offset: -1 | 1) => {
+    const targetIndex = index + offset;
+    if (targetIndex < 0 || targetIndex >= sectionOrder.length) return;
+    setResumeData(prev => {
+      const nextOrder = [...prev.sectionOrder];
+      [nextOrder[index], nextOrder[targetIndex]] = [nextOrder[targetIndex], nextOrder[index]];
+      return { ...prev, sectionOrder: nextOrder };
+    });
+  };
+
+  const restoreSection = (sectionKey: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      sectionOrder: [...prev.sectionOrder, sectionKey],
+    }));
+    setOpenSection(sectionKey);
+  };
+
   const renderHeaderAddon = (sectionKey: string) => <CompletionBadge value={sectionCompletion(sectionKey, resumeData)} />;
 
   return (
@@ -267,6 +304,8 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ resumeData, setResumeData, open
             onToggle: () => handleToggleSection(sectionKey),
             onDelete: () => handleDeleteSection(sectionKey),
             onRename: (newTitle: string) => setResumeData(prev => ({ ...prev, sectionTitles: { ...prev.sectionTitles, [sectionKey]: newTitle } })),
+            onMoveUp: index > 0 ? () => moveSection(index, -1) : undefined,
+            onMoveDown: index < sectionOrder.length - 1 ? () => moveSection(index, 1) : undefined,
             headerAddon: renderHeaderAddon(sectionKey),
             isHighlighted: focusSection === sectionKey,
           };
@@ -398,6 +437,25 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ resumeData, setResumeData, open
       </div>
 
       <div className="mt-6">
+        {hiddenBuiltInSections.length > 0 && (
+          <div className="mb-3 rounded-xl border border-border bg-card p-3">
+            <p className="mb-2 text-xs font-bold text-muted-foreground">
+              {t('form.hiddenSections', {}, 'Hidden sections')}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {hiddenBuiltInSections.map(sectionKey => (
+                <button
+                  key={sectionKey}
+                  type="button"
+                  onClick={() => restoreSection(sectionKey)}
+                  className="rounded-full border border-[#67c7a5]/40 bg-[#67c7a5]/10 px-3 py-1.5 text-xs font-bold text-[#17664f] hover:bg-[#67c7a5]/20 dark:text-[#83e0bf]"
+                >
+                  + {getSectionTitle(sectionKey)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {isAddingSection ? (
           <div className="space-y-3 rounded-xl border border-border bg-card p-4">
             <FormInput type="text" placeholder={t('form.newSectionTitlePlaceholder')} value={newSectionTitle} onChange={(e) => setNewSectionTitle(e.target.value)} autoFocus />

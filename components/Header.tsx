@@ -135,7 +135,7 @@ const Header: React.FC<HeaderProps> = ({
             <select
               value={activeResumeId}
               onChange={(e) => setActiveResumeId(e.target.value)}
-              className="hidden max-w-44 rounded-xl border-0 bg-transparent px-2 py-2 text-sm font-bold text-foreground outline-none sm:block"
+              className="max-w-28 rounded-xl border-0 bg-transparent px-2 py-2 text-sm font-bold text-foreground outline-none sm:max-w-44"
               aria-label={t('header.selectResume')}
             >
               {resumes.map(resume => (
@@ -157,13 +157,13 @@ const Header: React.FC<HeaderProps> = ({
                     setIsEditingName(false);
                   }
                 }}
-                className="w-36 rounded-xl bg-card px-3 py-2 text-sm font-bold ring-2 ring-[#00B5A5]/30"
+                className="hidden w-36 rounded-xl bg-card px-3 py-2 text-sm font-bold ring-2 ring-[#00B5A5]/30 sm:block"
               />
             ) : (
               <button
                 type="button"
                 onClick={() => setIsEditingName(true)}
-                className="max-w-[9rem] truncate rounded-xl px-3 py-2 text-sm font-black text-foreground transition hover:bg-accent sm:max-w-44"
+                className="hidden max-w-44 truncate rounded-xl px-3 py-2 text-sm font-black text-foreground transition hover:bg-accent sm:block"
                 title={t('header.renameResume')}
               >
                 {currentResumeName}
@@ -176,8 +176,7 @@ const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={() => deleteResume(activeResumeId)}
-              disabled={resumes.length <= 1}
-              className="rounded-xl p-2 text-red-500 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-xl p-2 text-red-500 transition hover:bg-red-500/10"
               aria-label={t('header.deleteCurrentResume')}
             >
               <TrashIcon />

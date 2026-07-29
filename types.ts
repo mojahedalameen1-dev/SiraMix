@@ -56,6 +56,7 @@ export interface ResumeData {
 export interface TemplateOptions {
   accentColor: string;
   fontFamily: string;
+  fontFamilyByLanguage?: Partial<Record<Language, string>>;
   fontSize: string;
   template: string;
   lineSpacing?: 'compact' | 'normal' | 'spacious';

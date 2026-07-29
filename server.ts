@@ -3,6 +3,7 @@ import path from "path";
 import htmlToDocx from "html-to-docx";
 import { createServer as createViteServer } from "vite";
 import { finalizeDocx } from "./services/docxPostprocess";
+import { verifyFirebaseIdToken } from "./services/firebaseTokenVerification";
 
 interface DocxExportRequest {
   html?: unknown;
@@ -52,6 +53,9 @@ async function startServer() {
 
   app.post("/api/export/docx", async (req, res) => {
     try {
+      if (!await verifyFirebaseIdToken(req.headers.authorization)) {
+        return res.status(401).json({ error: "Authentication required." });
+      }
       const body = req.body as DocxExportRequest;
       if (typeof body.html !== "string" || body.html.length < 20 || body.html.length > 5_000_000) {
         return res.status(400).json({ error: "Invalid document HTML." });
